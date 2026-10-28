@@ -252,6 +252,53 @@ describe("commitGeneration", () => {
     ]);
   });
 
+  it("preserves the previous manifest when a generated reference is missing before manifest commit", async () => {
+    await mkdir(config.screenshotsOutputPath, { recursive: true });
+    await mkdir(config.publicRoot, { recursive: true });
+    const screenshotPath = join(
+      config.screenshotsOutputPath,
+      "screenshot-01.png",
+    );
+    await writeFile(screenshotPath, "old screenshot");
+    await writeFile(config.manifestPath, "old manifest\n");
+
+    let removedInstalledScreenshot = false;
+    await expect(
+      commitGeneration(config, template, makeIcons(), [makeScreenshot()], {
+        logger: silentLogger,
+        fileOperations: {
+          rename: async (source, destination) => {
+            await rename(source, destination);
+            if (
+              !removedInstalledScreenshot &&
+              destination === screenshotPath &&
+              source.includes(".fastifest-stage-")
+            ) {
+              removedInstalledScreenshot = true;
+              await unlink(screenshotPath);
+            }
+          },
+        },
+      }),
+    ).rejects.toMatchObject({ code: "IO_FAILED" });
+
+    await expect(readFile(config.manifestPath, "utf8")).resolves.toBe(
+      "old manifest\n",
+    );
+    await expect(readFile(screenshotPath, "utf8")).resolves.toBe(
+      "old screenshot",
+    );
+    await expect(
+      access(join(config.iconsOutputPath, "icon-192.png")),
+    ).rejects.toThrow();
+    expect((await readdir(config.publicRoot)).sort()).toEqual([
+      "icons",
+      "manifest.json",
+      "screenshots",
+    ]);
+    await expect(readdir(config.iconsOutputPath)).resolves.toEqual([]);
+  });
+
   it("reports stale cleanup failures as warnings after committing the manifest", async () => {
     await mkdir(config.screenshotsOutputPath, { recursive: true });
     const stalePath = join(config.screenshotsOutputPath, "screenshot-12.png");

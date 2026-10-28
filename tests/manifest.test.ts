@@ -133,6 +133,118 @@ describe("buildManifest", () => {
     await expect(access(config.publicRoot)).rejects.toThrow();
   });
 
+  it("validates relative start, scope, and id relationships without requiring id inside scope", async () => {
+    const config = await makeConfig();
+    const result = buildManifest(
+      config,
+      {
+        ...completeTemplate,
+        start_url: "../app/start?mode=install#top",
+        scope: "../app/",
+        id: "../application-id",
+      },
+      makeIcons(),
+      [makeScreenshot()],
+      { logger: silentLogger },
+    );
+    expect(result.value.start_url).toBe("../app/start?mode=install#top");
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("does not assume an absolute scope is the unknown origin of a relative start_url", async () => {
+    const config = await makeConfig();
+    const result = buildManifest(
+      config,
+      {
+        ...completeTemplate,
+        start_url: "/app/start",
+        scope: "https://app.example.test/app/",
+      },
+      makeIcons(),
+      [makeScreenshot()],
+      { logger: silentLogger },
+    );
+    expect(result.warnings).toContain(
+      "Manifest template combines absolute URLs with a relative start_url; same-origin relationships involving relative URLs cannot be fully checked because the final site origin is unknown.",
+    );
+  });
+
+  it("rejects scope paths that do not contain start_url", async () => {
+    const config = await makeConfig();
+    expect(() =>
+      buildManifest(
+        config,
+        { ...completeTemplate, start_url: "/application/home", scope: "/app" },
+        makeIcons(),
+        [makeScreenshot()],
+        { logger: silentLogger },
+      ),
+    ).toThrowError(/scope must contain start_url/);
+  });
+
+  it("rejects conflicting absolute origins for scope and id", async () => {
+    const config = await makeConfig();
+    expect(() =>
+      buildManifest(
+        config,
+        {
+          ...completeTemplate,
+          start_url: "https://app.example.test/app/start",
+          scope: "https://other.example.test/app/",
+        },
+        makeIcons(),
+        [makeScreenshot()],
+        { logger: silentLogger },
+      ),
+    ).toThrowError(/scope.*same origin/);
+
+    expect(() =>
+      buildManifest(
+        config,
+        {
+          ...completeTemplate,
+          start_url: "https://app.example.test/app/start",
+          id: "https://other.example.test/app-id",
+        },
+        makeIcons(),
+        [makeScreenshot()],
+        { logger: silentLogger },
+      ),
+    ).toThrowError(/id.*same origin/);
+  });
+
+  it("accepts a consistent absolute deployment origin and warns that it is assumed", async () => {
+    const config = await makeConfig();
+    const result = buildManifest(
+      config,
+      {
+        ...completeTemplate,
+        start_url: "https://app.example.test/app/start",
+        scope: "../app/",
+        id: "../app-id",
+      },
+      makeIcons(),
+      [makeScreenshot()],
+      { logger: silentLogger },
+    );
+    expect(result.warnings).toEqual([
+      "Manifest template contains absolute URLs; Fastifest assumes deployment on origin https://app.example.test for relationship checks because the final site origin is unknown.",
+    ]);
+  });
+
+  it("rejects malformed URL references", async () => {
+    const config = await makeConfig();
+    expect(() =>
+      buildManifest(
+        config,
+        { ...completeTemplate, start_url: "https://[invalid" },
+        makeIcons(),
+        [makeScreenshot()],
+        { logger: silentLogger },
+      ),
+    ).toThrowError(/start_url.*valid URL/);
+  });
+
   it("omits screenshots when none were generated and returns a concise warning", async () => {
     const config = await makeConfig();
     const result = buildManifest(config, completeTemplate, makeIcons(), [], {
@@ -260,7 +372,12 @@ describe("buildManifest", () => {
     const config = await makeConfig();
     const result = buildManifest(
       config,
-      { name: "Example", prefer_related_applications: true },
+      {
+        name: "Example",
+        scope: "https://scope.example.test/app/",
+        id: "https://unrelated.example.test/app-id",
+        prefer_related_applications: true,
+      },
       makeIcons(),
       [],
       { logger: silentLogger },

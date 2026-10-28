@@ -184,6 +184,127 @@ async function inspectRegularFile(
   return info;
 }
 
+async function verifyGeneratedReferences(
+  builtManifest: BuiltManifest,
+  publicRoot: string,
+  stagedAssets: readonly StagedFile[],
+): Promise<void> {
+  const entries: unknown[] = [];
+  for (const member of ["icons", "screenshots"] as const) {
+    const value = builtManifest.value[member];
+    if (value === undefined && member === "screenshots") continue;
+    if (!Array.isArray(value)) {
+      throw new FastifestError(
+        "PATH_INVALID",
+        `Generated manifest ${member} references are missing or invalid.`,
+      );
+    }
+    entries.push(...value);
+  }
+
+  const stagedByTarget = new Map(
+    stagedAssets.map((asset) => [resolve(asset.targetPath), asset]),
+  );
+  const referencedTargets = new Set<string>();
+  const referenceBase = new URL("https://fastifest.invalid/manifest.json");
+
+  for (const entry of entries) {
+    if (
+      typeof entry !== "object" ||
+      entry === null ||
+      !("src" in entry) ||
+      typeof entry.src !== "string"
+    ) {
+      throw new FastifestError(
+        "PATH_INVALID",
+        "Generated manifest contains an invalid asset reference.",
+      );
+    }
+
+    let reference: URL;
+    try {
+      reference = new URL(entry.src, referenceBase);
+    } catch (error) {
+      throw new FastifestError(
+        "PATH_INVALID",
+        `Generated manifest asset reference is not a valid URL: ${entry.src}`,
+        error,
+      );
+    }
+    if (reference.origin !== referenceBase.origin) {
+      throw new FastifestError(
+        "UNSAFE_PATH",
+        `Generated manifest asset reference is not contained in the public root: ${entry.src}`,
+      );
+    }
+
+    let target: string;
+    try {
+      const segments = reference.pathname
+        .slice(1)
+        .split("/")
+        .map((segment) => decodeURIComponent(segment));
+      target = resolve(publicRoot, ...segments);
+    } catch (error) {
+      throw new FastifestError(
+        "PATH_INVALID",
+        `Generated manifest asset reference has an invalid path: ${entry.src}`,
+        error,
+      );
+    }
+    if (!isWithin(publicRoot, target)) {
+      throw new FastifestError(
+        "UNSAFE_PATH",
+        `Generated manifest asset reference is outside the public root: ${entry.src}`,
+      );
+    }
+
+    const staged = stagedByTarget.get(target);
+    if (!staged) {
+      throw new FastifestError(
+        "PATH_INVALID",
+        `Generated manifest asset reference does not point to a planned output: ${entry.src}`,
+      );
+    }
+    if (referencedTargets.has(target)) {
+      throw new FastifestError(
+        "PATH_INVALID",
+        `Generated manifest contains a duplicate asset reference: ${entry.src}`,
+      );
+    }
+    referencedTargets.add(target);
+
+    await rejectSymlinkComponents(target, "Installed generated asset");
+    let installed: Stats;
+    try {
+      installed = await lstat(target);
+    } catch (error) {
+      throw new FastifestError(
+        "IO_FAILED",
+        `Generated manifest asset is not installed before manifest commit: ${target}`,
+        error,
+      );
+    }
+    if (
+      installed.isSymbolicLink() ||
+      !installed.isFile() ||
+      !sameFile(installed, staged.info)
+    ) {
+      throw new FastifestError(
+        "UNSAFE_PATH",
+        `Generated manifest asset is not the installed regular output file: ${target}`,
+      );
+    }
+  }
+
+  if (referencedTargets.size !== stagedAssets.length) {
+    throw new FastifestError(
+      "PATH_INVALID",
+      "Generated manifest references do not match the complete set of planned assets.",
+    );
+  }
+}
+
 async function assertFileTargetsAvailable(
   plan: ManagedOutputPlan,
   manifestPath: string,
@@ -689,6 +810,11 @@ export async function commitGeneration(
     for (const stagedFile of stagedAssets) {
       await replaceFile(stagedFile, plan.overwrite, journal, renameFile);
     }
+    await verifyGeneratedReferences(
+      builtManifest,
+      resolve(config.publicRoot),
+      stagedAssets,
+    );
     await replaceFile(stagedManifest, true, journal, renameFile);
     manifestCommitted = true;
   } catch (error) {

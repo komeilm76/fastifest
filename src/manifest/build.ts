@@ -128,6 +128,158 @@ function urlPath(
     .join("/");
 }
 
+const FALLBACK_MANIFEST_URL = new URL(
+  "https://fastifest.invalid/manifest.json",
+);
+const URL_SCHEME = /^[A-Za-z][A-Za-z\d+.-]*:/;
+
+function isAbsoluteUrlReference(value: string): boolean {
+  return (
+    URL_SCHEME.test(value) || value.startsWith("//") || value.startsWith("\\\\")
+  );
+}
+
+function parseManifestUrl(value: string, field: string, base: URL): URL {
+  try {
+    return new URL(value, base);
+  } catch (error) {
+    throw new FastifestError(
+      "TEMPLATE_INVALID",
+      `Invalid manifest template.${field}: expected a valid URL or relative URL reference.`,
+      error,
+    );
+  }
+}
+
+function scopeContainsStartUrl(scopePath: string, startPath: string): boolean {
+  if (scopePath === "/") return true;
+  if (startPath === scopePath) return true;
+  const prefix = scopePath.endsWith("/") ? scopePath : `${scopePath}/`;
+  return startPath.startsWith(prefix);
+}
+
+/** Check URL relationships without assuming the deployed site host. */
+function validateTemplateUrlRelationships(
+  template: ReturnType<typeof validateTemplate>,
+  warn: (message: string) => void,
+): void {
+  if (template.start_url === undefined) {
+    for (const [field, value] of [
+      ["scope", template.scope],
+      ["id", template.id],
+    ] as const) {
+      if (value !== undefined) {
+        parseManifestUrl(value, field, FALLBACK_MANIFEST_URL);
+      }
+    }
+    return;
+  }
+
+  const candidateFields: Array<[string, string | undefined]> = [
+    ["start_url", template.start_url],
+    ["scope", template.scope],
+    ["id", template.id],
+  ];
+
+  const startUrlIsAbsolute = isAbsoluteUrlReference(template.start_url);
+  let absoluteReferenceOrigin: string | undefined;
+  for (const [field, value] of candidateFields) {
+    if (value === undefined || !isAbsoluteUrlReference(value)) continue;
+    const absoluteUrl = parseManifestUrl(value, field, FALLBACK_MANIFEST_URL);
+    if (absoluteUrl.origin === "null") {
+      throw new FastifestError(
+        "TEMPLATE_INVALID",
+        `Invalid manifest template.${field}: URL must have a web origin.`,
+      );
+    }
+    if (
+      absoluteReferenceOrigin !== undefined &&
+      absoluteReferenceOrigin !== absoluteUrl.origin
+    ) {
+      throw new FastifestError(
+        "TEMPLATE_INVALID",
+        `Invalid manifest template.${field}: URL must use the same origin as the other absolute manifest URLs.`,
+      );
+    }
+    absoluteReferenceOrigin = absoluteUrl.origin;
+  }
+
+  const assumedOrigin = startUrlIsAbsolute
+    ? absoluteReferenceOrigin
+    : undefined;
+  const base = new URL(
+    "/manifest.json",
+    `${assumedOrigin ?? FALLBACK_MANIFEST_URL.origin}/`,
+  );
+  const startUrl =
+    template.start_url === undefined
+      ? undefined
+      : parseManifestUrl(template.start_url, "start_url", base);
+  const scopeUrl =
+    template.scope === undefined
+      ? undefined
+      : parseManifestUrl(template.scope, "scope", base);
+  const idUrl =
+    template.id === undefined
+      ? undefined
+      : parseManifestUrl(template.id, "id", base);
+
+  if (startUrl && startUrl.origin !== base.origin) {
+    throw new FastifestError(
+      "TEMPLATE_INVALID",
+      "Invalid manifest template.start_url: URL must resolve to the manifest origin.",
+    );
+  }
+  if (
+    scopeUrl &&
+    startUrl &&
+    (startUrlIsAbsolute || !isAbsoluteUrlReference(template.scope ?? "")) &&
+    scopeUrl.origin !== startUrl.origin
+  ) {
+    throw new FastifestError(
+      "TEMPLATE_INVALID",
+      "Invalid manifest template.scope: URL must resolve to the same origin as start_url.",
+    );
+  }
+  if (
+    scopeUrl &&
+    startUrl &&
+    !scopeContainsStartUrl(scopeUrl.pathname, startUrl.pathname)
+  ) {
+    throw new FastifestError(
+      "TEMPLATE_INVALID",
+      "Invalid manifest template.scope: resolved scope must contain start_url.",
+    );
+  }
+  if (
+    idUrl &&
+    startUrl &&
+    (startUrlIsAbsolute || !isAbsoluteUrlReference(template.id ?? "")) &&
+    idUrl.origin !== startUrl.origin
+  ) {
+    throw new FastifestError(
+      "TEMPLATE_INVALID",
+      "Invalid manifest template.id: URL must resolve to the same origin as start_url.",
+    );
+  }
+
+  if (
+    candidateFields.some(
+      ([, value]) => value !== undefined && isAbsoluteUrlReference(value),
+    )
+  ) {
+    if (startUrlIsAbsolute) {
+      warn(
+        `Manifest template contains absolute URLs; Fastifest assumes deployment on origin ${assumedOrigin} for relationship checks because the final site origin is unknown.`,
+      );
+    } else {
+      warn(
+        "Manifest template combines absolute URLs with a relative start_url; same-origin relationships involving relative URLs cannot be fully checked because the final site origin is unknown.",
+      );
+    }
+  }
+}
+
 function validateIcons(
   icons: readonly GeneratedLogoIcon[],
 ): GeneratedLogoIcon[] {
@@ -198,6 +350,14 @@ export function buildManifest(
   options: BuildManifestOptions = {},
 ): BuiltManifest {
   const template = validateTemplate(templateInput);
+  const warnings: string[] = [];
+  const logger = options.logger ?? createLogger(config.logLevel);
+  const warn = (message: string): void => {
+    warnings.push(message);
+    logger.warn(message);
+  };
+  validateTemplateUrlRelationships(template, warn);
+
   const { publicRoot, manifestPath, iconsDirectory, screenshotsDirectory } =
     validateOutputLayout(config);
   const icons = validateIcons(iconsInput);
@@ -230,12 +390,6 @@ export function buildManifest(
     ...(screenshotEntries.length > 0 ? { screenshots: screenshotEntries } : {}),
   } as unknown as JsonObject;
   const json = `${JSON.stringify(value, null, 2)}\n`;
-  const warnings: string[] = [];
-  const logger = options.logger ?? createLogger(config.logLevel);
-  const warn = (message: string): void => {
-    warnings.push(message);
-    logger.warn(message);
-  };
 
   if (template.start_url === undefined) {
     warn(
