@@ -156,7 +156,10 @@ export async function loadTemplate(
   templatePath: string,
 ): Promise<ManifestTemplate> {
   try {
-    const jiti = createJiti(import.meta.url, { interopDefault: true });
+    const jiti = createJiti(import.meta.url, {
+      interopDefault: true,
+      moduleCache: false,
+    });
     const value = await jiti.import<unknown>(templatePath, { default: true });
     return validateTemplate(value);
   } catch (error) {

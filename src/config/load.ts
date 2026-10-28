@@ -37,7 +37,10 @@ export async function loadConfig(
 
   try {
     // A per-load loader instance evaluates this configuration at most once here.
-    const jiti = createJiti(import.meta.url, { interopDefault: true });
+    const jiti = createJiti(import.meta.url, {
+      interopDefault: true,
+      moduleCache: false,
+    });
     const loaded = await jiti.import<unknown>(configPath, { default: true });
     return validateConfig(loaded);
   } catch (error) {

@@ -230,6 +230,29 @@ describe("loadConfig", () => {
     });
   });
 
+  it("re-reads an edited config on a later generation call in the same process", async () => {
+    const configFile = join(projectRoot, "custom.config.ts");
+    await writeFile(
+      configFile,
+      `export default { images: { overwrite: false } };`,
+    );
+    await expect(
+      loadConfig({ cwd: projectRoot, configPath: configFile }),
+    ).resolves.toMatchObject({
+      images: { overwrite: false },
+    });
+
+    await writeFile(
+      configFile,
+      `export default { images: { overwrite: true } };`,
+    );
+    await expect(
+      loadConfig({ cwd: projectRoot, configPath: configFile }),
+    ).resolves.toMatchObject({
+      images: { overwrite: true },
+    });
+  });
+
   it("fails clearly when an explicitly selected config file is missing", async () => {
     await expect(
       loadConfig({ cwd: projectRoot, configPath: "./missing.ts" }),

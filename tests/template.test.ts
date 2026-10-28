@@ -78,6 +78,19 @@ describe("loadTemplate", () => {
       display: "standalone",
     });
   });
+
+  it("re-reads an edited template on a later generation call in the same process", async () => {
+    const templateFile = join(root, "manifest.template.ts");
+    await writeFile(templateFile, `export default { name: 'First' };`);
+    await expect(loadTemplate(templateFile)).resolves.toMatchObject({
+      name: "First",
+    });
+
+    await writeFile(templateFile, `export default { name: 'Second' };`);
+    await expect(loadTemplate(templateFile)).resolves.toMatchObject({
+      name: "Second",
+    });
+  });
 });
 
 describe("loadOrCreateTemplate", () => {
