@@ -59,7 +59,7 @@ export default {
 } satisfies FastifestConfig;
 ```
 
-Paths are planned to resolve from the project root, except output paths, which resolve from the configured public root. See the [configuration reference](configuration.md) for the proposed defaults and path rules.
+Source, template, and `paths.public` values are planned to resolve from the project root. `paths.manifest` and generated output paths resolve from the configured public root; the manifest is fixed to `manifest.json` directly inside that folder. See the [configuration reference](configuration.md) for the proposed defaults and path rules.
 
 ## 4. Add manifest details
 
@@ -93,7 +93,7 @@ The planned command is:
 npx fastifest
 ```
 
-The intended outputs are `manifest.json` in your project root, icons under `public/icons/`, and any converted screenshots under `public/screenshots/`. Many frameworks serve only files inside `public/`; configure your build/deployment to also publish the root-level `manifest.json` at the URL used by your HTML link. Manifest image URLs are resolved relative to that deployed manifest URL; with the default mapping, an icon URL looks like `icons/icon-192.png`. Confirm the public assets and manifest are served at matching URL paths.
+The intended outputs are `public/manifest.json`, icons under `public/icons/`, and any converted screenshots under `public/screenshots/`. The manifest is written directly into the configured public folder, alongside the generated assets. When that folder is served at the site root, the manifest URL is `/manifest.json`, and an icon URL such as `icons/icon-192.png` resolves relative to it. If your host serves the public folder under a URL prefix, adjust the HTML link and deployment so the manifest's relative asset URLs reach the generated files.
 
 Fastifest does not edit your HTML. Add a manifest link to your page, adjusting the URL if your app is deployed under a subpath:
 

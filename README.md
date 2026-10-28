@@ -54,8 +54,8 @@ project/
 │   └── screenshots/           # optional source screenshots
 ├── fastifest.config.ts
 ├── manifest.template.ts       # created if enabled; never overwritten
-├── manifest.json
 └── public/
+    ├── manifest.json
     ├── icons/
     │   ├── icon-192.png
     │   ├── icon-512.png

@@ -39,10 +39,10 @@ Approved implementation sequence: foundation/config and paths; discovery/image p
 The full proposed shape, defaults, and unresolved choices are recorded in [design decisions](phase-0/decisions.md). Key contract:
 
 - Load a TypeScript default export from `fastifest.config.ts`; allow `--config <path>`.
-- Resolve config-relative project paths from the consuming project's root (`cwd`), never the installed package or source module location.
+- Resolve source and template paths from the consuming project's root (`cwd`), never the installed package or source module location. Resolve `paths.public` from the project root.
 - Resolve all inputs and outputs to normalized absolute filesystem paths before validation or I/O.
-- Proposed public root default: `./public`; manifest default: `./manifest.json`, strictly a direct child of project root in v1.
-- Proposed output subpaths (`icons`, `screenshots`) resolve relative to the public root and must remain within it.
+- Proposed public root default: `./public`; manifest default: `./manifest.json`, relative to the public root and strictly a direct child of that folder in v1.
+- Proposed output subpaths (`icons`, `screenshots`) also resolve relative to the public root and must remain within it.
 - Proposed source directories: `./assets/logos` and optional `./assets/screenshots`; confirm the logo default before implementation.
 - Validate malformed and unknown config values with actionable field-specific errors. Logging levels: `error`, `warn`, `info`, `debug`.
 - TypeScript config/template files execute code. Use a declared, dependable loader tested under every supported runtime, evaluate each file at most once per run, and document that only trusted files should be loaded.
@@ -90,7 +90,7 @@ Only exact Fastifest filenames in the configured dedicated output directories ar
 - Validate URL relationships that can be determined independently of the final site origin: when supplied, `start_url` must resolve same-origin with the manifest URL; if `scope` is also supplied, it must resolve same-origin and contain `start_url`; a supplied `id` must be same-origin with `start_url` but need not be within `scope`. Respect relative URL resolution; do not synthesize an app `id`. If `start_url` is absent, warn that the browser may fall back to the linking page and scope/ID relationships cannot be fully checked.
 - Warn (do not fail standards validation) if `start_url` or both `display` and `display_override` are absent, or if `prefer_related_applications` is `true`; explain that these can affect Chromium install promotion and that installability is browser-specific.
 - Generated icon entries include `src`, `sizes`, `type: 'image/png'`, and the correct `purpose`. Screenshot entries include `src`, actual `sizes`, and type. Optional `screenshots.metadata` keyed by exact source basename may provide `label` and `formFactor` (serialized as `form_factor`); reject keys for undiscovered files and never infer these values. When no screenshots are discovered, warn and omit the `screenshots` member entirely.
-- Browser URL resolution is relative to the **deployed manifest URL**, not a filesystem root. Generate relative `src` URL paths with forward slashes and no filesystem paths (for the default mapping, `icons/icon-192.png`). This assumes the configured public root is served so its output subpaths preserve the same URL relationship to the root-level manifest. Validate the filesystem references are contained in the public root, and document the deployment assumption and its limits.
+- Browser URL resolution is relative to the **deployed manifest URL**, not a filesystem root. Generate relative `src` URL paths with forward slashes and no filesystem paths (for the default mapping, `icons/icon-192.png`). The manifest and output folders live inside the configured public root, so the default mapping assumes that tree is served at the same URL base (for example, `/manifest.json` and `/icons/icon-192.png`). Validate the filesystem references are contained in the public root, and document the deployment assumption and its limits.
 - Do not merge stale fields from an existing manifest. Output is based on template plus freshly generated collections.
 - Serialize UTF-8 JSON with stable two-space indentation and trailing newline. Validate completely before replacing the final manifest; use a temporary sibling file and atomic rename where supported, with cleanup on failure.
 - With template creation enabled, if the template is missing, create the starter, provide next-step guidance, and stop without writing a placeholder manifest. If template creation is disabled and no template exists, fail clearly.
@@ -149,7 +149,7 @@ Before release, provide accurate consumer docs in the root `README.md` and `docs
 - [ ] Icons and screenshots have documented deterministic PNG sizes, naming, and aspect-ratio behavior.
 - [ ] Template is create-only; template-defined generated collections are rejected.
 - [ ] Optional screenshot labels and explicitly supplied form factors are validated and serialized; no screenshot metadata is guessed.
-- [ ] Manifest output is valid JSON with known members validated against the documented schema snapshot, stable, root-level by policy, uses correct deployed-relative URLs, and references existing assets contained in the public root.
+- [ ] Manifest output is valid JSON with known members validated against the documented schema snapshot, stable, directly inside the public root by policy, uses correct deployed-relative URLs, and references existing assets contained in the public root.
 - [ ] Config/path validation and overwrite/cleanup ownership are tested.
 - [ ] Errors and warnings are actionable; failures preserve prior manifest and clean temporary files.
 - [ ] Unit/integration tests, formatting, typecheck, build, and package checks pass.

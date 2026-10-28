@@ -10,7 +10,7 @@ V1 prioritizes deterministic output, explicit ownership of generated files, usef
 
 ## 2. Proposed configuration contract
 
-Use a TypeScript default export in `fastifest.config.ts`. Resolve config, input paths, and the manifest path against the project root (`cwd`), never against the installed package or config file's directory. `--config` is resolved against `cwd` unless absolute. The config is executable code and must be trusted.
+Use a TypeScript default export in `fastifest.config.ts`. Resolve config, source-input, and template paths against the project root (`cwd`), never against the installed package or config file's directory. Resolve `paths.manifest` and generated output subpaths against `paths.public`; that public root is itself project-root-relative. `--config` is resolved against `cwd` unless absolute. The config is executable code and must be trusted.
 
 ```ts
 import type { FastifestConfig } from "fastifest";
@@ -54,9 +54,9 @@ This mapping does not select inputs: all supported screenshots are still discove
 
 - `paths.public` is the web-served asset root, default `./public`.
 - `paths.output.logos` and `.screenshots` are **relative to the public root**, default `./icons` and `./screenshots`. They may not escape the public root after normalization or symlink checks.
-- `paths.manifest` is relative to the project root and must resolve to a direct child named `manifest.json` in v1. Default `./manifest.json`. Reject other locations clearly; this avoids a configurable-manifest/root-policy contradiction and ambiguous public URLs.
+- `paths.manifest` is relative to the configured public root and must resolve to the direct child `manifest.json` in v1. Default `./manifest.json`. Reject absolute paths, traversal, and nested locations clearly. This keeps the manifest in the served asset tree beside generated assets.
 - Source directories are relative to project root. `logos` is required; `screenshots` is optional. Logo and screenshot input directories must not equal or contain one another; neither may overlap generated output trees. Do not follow symlinked input entries. Reject symlink/reparse-point components in output roots and reserved output targets, and verify canonical output parents remain inside the public root before writing; do not write through symlinks. Re-check paths immediately before commit where practical. Document that filesystem race/TOCTOU protection is not absolute.
-- Browser-resolved `src` URLs are relative to the **deployed manifest URL**, not the public filesystem root. Emit relative URL paths with `/` separators and no filesystem paths; with the default deployment, `icons/icon-192.png` resolves from `/manifest.json` to `/icons/icon-192.png`. This requires the configured public root's output subpaths to be served at the corresponding URL paths. Document that Fastifest cannot infer framework/host URL rewrites; users with a different mapping must configure routes or adjust deployment.
+- Browser-resolved `src` URLs are relative to the **deployed manifest URL**, not the public filesystem root. Emit relative URL paths with `/` separators and no filesystem paths; with the default deployment, `public/manifest.json` is served at `/manifest.json`, and `icons/icon-192.png` resolves to `/icons/icon-192.png`. This requires the configured public root and its output subpaths to be served at the corresponding URL paths. Document that Fastifest cannot infer framework/host URL rewrites; users with a different mapping must configure routes or adjust deployment.
 - Reject output directories that alias the input directories, manifest, project root, or one another. Test both POSIX and Windows path rules.
 
 ### Defaults and validation

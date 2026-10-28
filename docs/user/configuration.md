@@ -31,16 +31,16 @@ export default {
 
 ## `paths`
 
-| Option                     | Proposed default       | Meaning                                                                                              |
-| -------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------- |
-| `logos`                    | `./assets/logos`       | Required directory containing exactly one supported logo.                                            |
-| `screenshots`              | `./assets/screenshots` | Optional directory containing screenshots.                                                           |
-| `public`                   | `./public`             | Root directory served by your web application.                                                       |
-| `manifest`                 | `./manifest.json`      | Manifest output path. V1 is planned to require a direct child of project root named `manifest.json`. |
-| `paths.output.logos`       | `./icons`              | Icon output directory, relative to `paths.public`.                                                   |
-| `paths.output.screenshots` | `./screenshots`        | Screenshot output directory, relative to `paths.public`.                                             |
+| Option                     | Proposed default       | Meaning                                                                                                    |
+| -------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `logos`                    | `./assets/logos`       | Required directory containing exactly one supported logo.                                                  |
+| `screenshots`              | `./assets/screenshots` | Optional directory containing screenshots.                                                                 |
+| `public`                   | `./public`             | Root directory served by your web application.                                                             |
+| `manifest`                 | `./manifest.json`      | Manifest output path, relative to `paths.public`; V1 requires `manifest.json` directly inside that folder. |
+| `paths.output.logos`       | `./icons`              | Icon output directory, relative to `paths.public`.                                                         |
+| `paths.output.screenshots` | `./screenshots`        | Screenshot output directory, relative to `paths.public`.                                                   |
 
-Output directories must stay inside the public root. Logo and screenshot input directories may not overlap each other or generated output directories. The proposed v1 policy rejects symlinked input entries and symlink/reparse-point output components or reserved targets rather than following them. Keep the output directories dedicated to Fastifest: its generated names are reserved, and hand-managed files with those names may be replaced when overwrite is enabled. Fastifest cannot infer how your framework maps filesystem paths to deployed URLs; the default assumes the public directory is served at the same URL base as the root-level manifest. See [Web App Manifest and PWA basics](manifest-and-pwa.md#understand-url-resolution).
+The manifest and generated output directories stay inside the public root. Logo and screenshot input directories may not overlap each other or generated output directories. The proposed v1 policy rejects symlinked input entries and symlink/reparse-point output components or reserved targets rather than following them. Keep the output directories dedicated to Fastifest: its generated names are reserved, and hand-managed files with those names may be replaced when overwrite is enabled. Fastifest cannot infer how your framework maps filesystem paths to deployed URLs; the default assumes the public directory is served at the same URL base, with `manifest.json` beside the generated asset folders. See [Web App Manifest and PWA basics](manifest-and-pwa.md#understand-url-resolution).
 
 ## `template`
 

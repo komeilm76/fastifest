@@ -41,10 +41,11 @@ export interface ScreenshotMetadata {
   formFactor?: "narrow" | "wide";
 }
 
-/** User-facing configuration. Relative paths are resolved from the project root. */
+/** User-facing configuration. Most relative paths use the project root; the manifest and generated subpaths use `paths.public`. */
 export interface FastifestConfig {
   paths?: {
     public?: string;
+    /** Must resolve to `manifest.json` directly inside `paths.public`. */
     manifest?: string;
     logos?: string;
     screenshots?: string;
@@ -72,6 +73,7 @@ export interface FastifestConfig {
 export interface ResolvedFastifestConfig {
   projectRoot: string;
   publicRoot: string;
+  /** `manifest.json` directly inside publicRoot. */
   manifestPath: string;
   logosPath: string;
   screenshotsPath: string;

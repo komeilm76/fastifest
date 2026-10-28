@@ -35,7 +35,7 @@ Gate: malformed inputs fail usefully; valid images yield correct dimensions and 
 
 ## Phase 3 — manifest transaction and public interfaces
 
-Implement template creation/loading and validation, generated manifest collections, public-root URL mapping, output existence validation, stable JSON formatting, manifest-last atomic replacement, CLI/API behavior, help/version, and exit codes. Add temporary-project integration tests for first run, repeated run, missing template, overwrite modes, and failure preservation.
+Implement template creation/loading and validation, generated manifest collections, `manifest.json` at the configured public-root top level, public-root URL mapping, output existence validation, stable JSON formatting, manifest-last atomic replacement, CLI/API behavior, help/version, and exit codes. Add temporary-project integration tests for first run, repeated run, missing template, overwrite modes, and failure preservation.
 
 Gate: every manifest URL maps to a generated file; failures do not corrupt the previous manifest; CLI and API share the same core.
 

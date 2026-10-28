@@ -30,7 +30,7 @@ Proposed limits are 20 MiB per raster input, 2 MiB per SVG, 40 megapixels and 12
 
 ## Output path or overwrite error
 
-The proposed path policy keeps generated assets inside the configured public root and the manifest at the project root. Use paths that do not escape or overlap input/output folders. Symlinked input entries and symlink/reparse-point output components or reserved targets may be rejected; use real directories and files. With overwrite disabled, move or rename conflicting managed outputs yourself before retrying. Fastifest must not recursively delete folders or overwrite files outside its reserved names.
+The proposed path policy keeps the manifest and generated assets inside the configured public root; `manifest.json` must be directly in that folder. Use paths that do not escape or overlap input/output folders. Symlinked input entries and symlink/reparse-point output components or reserved targets may be rejected; use real directories and files. With overwrite disabled, move or rename conflicting managed outputs yourself before retrying. Fastifest must not recursively delete folders or overwrite files outside its reserved names.
 
 ## Sharp installation issue
 

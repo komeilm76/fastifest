@@ -102,7 +102,7 @@ function assertDisjoint(label: string, paths: Array<[string, string]>): void {
   }
 }
 
-/** Apply defaults, resolve project-relative paths, and enforce filesystem boundaries. */
+/** Apply defaults, resolve project/public-root paths, and enforce filesystem boundaries. */
 export async function resolveConfig(
   input: FastifestConfig | unknown,
   options: ResolveConfigOptions = {},
@@ -139,10 +139,20 @@ export async function resolveConfig(
     projectRoot,
     config.paths?.public ?? "./public",
   );
-  const manifestPath = resolveInputPath(
-    projectRoot,
-    config.paths?.manifest ?? "./manifest.json",
-  );
+  const configuredManifestPath = config.paths?.manifest ?? "./manifest.json";
+  if (isAbsolute(configuredManifestPath)) {
+    throw new FastifestError(
+      "PATH_INVALID",
+      "config.paths.manifest must be relative to config.paths.public.",
+    );
+  }
+  const manifestPath = resolve(publicRoot, configuredManifestPath);
+  if (manifestPath !== resolve(publicRoot, "manifest.json")) {
+    throw new FastifestError(
+      "PATH_INVALID",
+      "config.paths.manifest must be the manifest.json file directly inside the public root.",
+    );
+  }
   const logosPath = resolveInputPath(
     projectRoot,
     config.paths?.logos ?? "./assets/logos",
@@ -166,19 +176,6 @@ export async function resolveConfig(
     config.template?.path ?? "./manifest.template.ts",
   );
 
-  if (manifestPath !== resolve(projectRoot, "manifest.json")) {
-    throw new FastifestError(
-      "PATH_INVALID",
-      "config.paths.manifest must be the root-level manifest.json file.",
-    );
-  }
-  if (!pathIsWithin(projectRoot, manifestPath)) {
-    throw new FastifestError(
-      "UNSAFE_PATH",
-      "The manifest must be inside the project root.",
-    );
-  }
-
   assertDisjoint("Input", [
     ["logos", logosPath],
     ["screenshots", screenshotsPath],
@@ -188,6 +185,13 @@ export async function resolveConfig(
     ["screenshotsOutput", screenshotsOutputPath],
   ]);
   assertDisjoint("Input/output", [
+    ["logos", logosPath],
+    ["screenshots", screenshotsPath],
+    ["iconsOutput", iconsOutputPath],
+    ["screenshotsOutput", screenshotsOutputPath],
+  ]);
+  assertDisjoint("Manifest/input/output", [
+    ["manifest", manifestPath],
     ["logos", logosPath],
     ["screenshots", screenshotsPath],
     ["iconsOutput", iconsOutputPath],

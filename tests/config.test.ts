@@ -93,7 +93,7 @@ describe("resolveConfig", () => {
     expect(resolved).toMatchObject({
       projectRoot,
       publicRoot: join(projectRoot, "public"),
-      manifestPath: join(projectRoot, "manifest.json"),
+      manifestPath: join(projectRoot, "public", "manifest.json"),
       logosPath: join(projectRoot, "assets", "logos"),
       screenshotsPath: join(projectRoot, "assets", "screenshots"),
       iconsOutputPath: join(projectRoot, "public", "icons"),
@@ -110,6 +110,7 @@ describe("resolveConfig", () => {
       {
         paths: {
           public: "./site",
+          manifest: "./manifest.json",
           output: { logos: "./assets/icons", screenshots: "captures" },
         },
       },
@@ -121,6 +122,9 @@ describe("resolveConfig", () => {
     expect(resolved.screenshotsOutputPath).toBe(
       join(projectRoot, "site", "captures"),
     );
+    expect(resolved.manifestPath).toBe(
+      join(projectRoot, "site", "manifest.json"),
+    );
   });
 
   it.each([
@@ -129,7 +133,19 @@ describe("resolveConfig", () => {
     [{ paths: { output: { logos: "/tmp/icons" } } }, "must be relative"],
     [
       { paths: { manifest: "./public/manifest.json" } },
-      "root-level manifest.json",
+      "directly inside the public root",
+    ],
+    [
+      { paths: { manifest: "../manifest.json" } },
+      "directly inside the public root",
+    ],
+    [
+      { paths: { manifest: "./nested/manifest.json" } },
+      "directly inside the public root",
+    ],
+    [
+      { paths: { output: { logos: "manifest.json" } } },
+      "Manifest/input/output paths must not overlap",
     ],
     [
       { paths: { logos: "./assets", screenshots: "./assets/screens" } },
@@ -151,6 +167,15 @@ describe("resolveConfig", () => {
       ).rejects.toThrowError(message);
     },
   );
+
+  it("rejects an absolute manifest path", async () => {
+    await expect(
+      resolveConfig(
+        { paths: { manifest: join(projectRoot, "public", "manifest.json") } },
+        { cwd: projectRoot },
+      ),
+    ).rejects.toThrowError("must be relative to config.paths.public");
+  });
 
   it("rejects a project root that is a file", async () => {
     const filePath = join(projectRoot, "not-a-directory");
