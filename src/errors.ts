@@ -4,6 +4,7 @@ export type FastifestErrorCode =
   | "CONFIG_LOAD_FAILED"
   | "TEMPLATE_INVALID"
   | "TEMPLATE_LOAD_FAILED"
+  | "TEMPLATE_MISSING"
   | "PATH_INVALID"
   | "UNSAFE_PATH"
   | "INPUT_INVALID"

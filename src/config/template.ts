@@ -1,7 +1,9 @@
+import { lstat, mkdir, open, readFile, unlink } from "node:fs/promises";
+import { dirname, join, parse, resolve, sep } from "node:path";
 import { createJiti } from "jiti";
 import { FastifestError } from "../errors.js";
+import { createLogger, type Logger } from "../logger.js";
 import type { JsonObject, JsonValue, ManifestTemplate } from "../types.js";
-import { FastifestError as ErrorClass } from "../errors.js";
 
 type UnknownRecord = Record<string, unknown>;
 const STRING_FIELDS = [
@@ -158,11 +160,262 @@ export async function loadTemplate(
     const value = await jiti.import<unknown>(templatePath, { default: true });
     return validateTemplate(value);
   } catch (error) {
-    if (error instanceof ErrorClass) throw error;
+    if (error instanceof FastifestError) throw error;
     throw new FastifestError(
       "TEMPLATE_LOAD_FAILED",
       `Could not load manifest template ${templatePath}.`,
       error,
     );
   }
+}
+
+const STARTER_TEMPLATE = `/**
+ * Customize these values for your application. Fastifest creates this file
+ * once and will not overwrite it. The first run stops after creating it.
+ */
+export default {
+  name: "My Web App",
+  short_name: "My App",
+  start_url: "/",
+  display: "standalone",
+};
+`;
+
+export interface LoadOrCreateTemplateOptions {
+  /** Controls creation only; an existing template is always loaded. */
+  enabled?: boolean;
+  logger?: Logger;
+}
+
+/** `created` is a first-run stop signal; never use its starter as manifest data. */
+export type LoadOrCreateTemplateResult =
+  | { status: "loaded"; template: ManifestTemplate }
+  | { status: "created"; templatePath: string; guidance: string };
+
+function errorCode(error: unknown): string | undefined {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    return typeof error.code === "string" ? error.code : undefined;
+  }
+  return undefined;
+}
+
+async function inspectTemplatePath(
+  templatePath: string,
+  expected: "file" | "directory" = "file",
+): Promise<boolean> {
+  const absolute = resolve(templatePath);
+  const parsed = parse(absolute);
+  const segments = absolute
+    .slice(parsed.root.length)
+    .split(sep)
+    .filter(Boolean);
+  let current = parsed.root;
+
+  for (const [index, segment] of segments.entries()) {
+    current = join(current, segment);
+    let info;
+    try {
+      info = await lstat(current);
+    } catch (error) {
+      if (errorCode(error) === "ENOENT") return false;
+      throw new FastifestError(
+        "IO_FAILED",
+        `Could not inspect manifest template path: ${current}`,
+        error,
+      );
+    }
+    if (info.isSymbolicLink()) {
+      throw new FastifestError(
+        "UNSAFE_PATH",
+        `Manifest template path contains a symlink or reparse point: ${current}`,
+      );
+    }
+    if (index < segments.length - 1 && !info.isDirectory()) {
+      throw new FastifestError(
+        "PATH_INVALID",
+        `Manifest template parent is not a directory: ${current}`,
+      );
+    }
+    if (
+      index === segments.length - 1 &&
+      !(expected === "file" ? info.isFile() : info.isDirectory())
+    ) {
+      throw new FastifestError(
+        "PATH_INVALID",
+        expected === "file"
+          ? `Manifest template path is not a regular file: ${current}`
+          : `Manifest template parent is not a directory: ${current}`,
+      );
+    }
+  }
+  if (segments.length === 0) {
+    const rootInfo = await lstat(parsed.root);
+    if (rootInfo.isSymbolicLink()) {
+      throw new FastifestError(
+        "UNSAFE_PATH",
+        `Manifest template path contains a symlink or reparse point: ${parsed.root}`,
+      );
+    }
+    const rootMatches =
+      expected === "file" ? rootInfo.isFile() : rootInfo.isDirectory();
+    if (!rootMatches) {
+      throw new FastifestError(
+        "PATH_INVALID",
+        expected === "file"
+          ? `Manifest template path is not a regular file: ${parsed.root}`
+          : `Manifest template parent is not a directory: ${parsed.root}`,
+      );
+    }
+  }
+  return true;
+}
+
+async function createStarterTemplate(templatePath: string): Promise<boolean> {
+  const parent = dirname(templatePath);
+  await inspectTemplatePath(parent, "directory");
+  try {
+    await mkdir(parent, { recursive: true });
+  } catch (error) {
+    throw new FastifestError(
+      "IO_FAILED",
+      `Could not create manifest template directory: ${parent}`,
+      error,
+    );
+  }
+
+  if (!(await inspectTemplatePath(parent, "directory"))) {
+    throw new FastifestError(
+      "PATH_INVALID",
+      `Manifest template parent directory does not exist: ${parent}`,
+    );
+  }
+
+  let handle;
+  try {
+    handle = await open(templatePath, "wx", 0o666);
+  } catch (error) {
+    if (errorCode(error) === "EEXIST") return false;
+    throw new FastifestError(
+      "IO_FAILED",
+      `Could not create manifest template: ${templatePath}`,
+      error,
+    );
+  }
+
+  let ownedInfo;
+  try {
+    ownedInfo = await handle.stat();
+    await handle.writeFile(STARTER_TEMPLATE, "utf8");
+    await handle.sync();
+  } catch (error) {
+    try {
+      await handle.close();
+    } catch {
+      // Preserve the original write error.
+    }
+    if (ownedInfo) {
+      try {
+        const current = await lstat(templatePath);
+        if (
+          current.isFile() &&
+          !current.isSymbolicLink() &&
+          current.dev === ownedInfo.dev &&
+          current.ino === ownedInfo.ino
+        ) {
+          await unlink(templatePath);
+        }
+      } catch {
+        // Preserve the original write error; cleanup is best-effort.
+      }
+    }
+    throw new FastifestError(
+      "IO_FAILED",
+      `Could not write manifest template: ${templatePath}`,
+      error,
+    );
+  }
+
+  try {
+    await handle.close();
+  } catch (error) {
+    throw new FastifestError(
+      "IO_FAILED",
+      `Could not close manifest template: ${templatePath}`,
+      error,
+    );
+  }
+
+  if (!(await inspectTemplatePath(templatePath))) {
+    throw new FastifestError(
+      "IO_FAILED",
+      `Manifest template disappeared during creation: ${templatePath}`,
+    );
+  }
+  const installed = await lstat(templatePath);
+  if (
+    installed.isSymbolicLink() ||
+    !installed.isFile() ||
+    installed.dev !== ownedInfo.dev ||
+    installed.ino !== ownedInfo.ino
+  ) {
+    throw new FastifestError(
+      "UNSAFE_PATH",
+      `Manifest template changed unexpectedly during creation: ${templatePath}`,
+    );
+  }
+  return true;
+}
+
+/** Load an existing template or create a starter and signal the caller to stop. */
+export async function loadOrCreateTemplate(
+  templatePath: string,
+  options: LoadOrCreateTemplateOptions = {},
+): Promise<LoadOrCreateTemplateResult> {
+  const absoluteTemplatePath = resolve(templatePath);
+  const logger = options.logger ?? createLogger();
+  const enabled = options.enabled ?? true;
+
+  if (await inspectTemplatePath(absoluteTemplatePath)) {
+    return {
+      status: "loaded",
+      template: await loadTemplate(absoluteTemplatePath),
+    };
+  }
+
+  if (!enabled) {
+    throw new FastifestError(
+      "TEMPLATE_MISSING",
+      `Manifest template not found: ${absoluteTemplatePath}. Create the file or set template.enabled to true to generate a starter.`,
+    );
+  }
+
+  const created = await createStarterTemplate(absoluteTemplatePath);
+  if (!created) {
+    if (!(await inspectTemplatePath(absoluteTemplatePath))) {
+      throw new FastifestError(
+        "IO_FAILED",
+        `Manifest template disappeared during creation: ${absoluteTemplatePath}`,
+      );
+    }
+    let existingContents: string;
+    try {
+      existingContents = await readFile(absoluteTemplatePath, "utf8");
+    } catch (error) {
+      throw new FastifestError(
+        "IO_FAILED",
+        `Could not read manifest template after a create-only collision: ${absoluteTemplatePath}`,
+        error,
+      );
+    }
+    if (existingContents !== STARTER_TEMPLATE) {
+      return {
+        status: "loaded",
+        template: await loadTemplate(absoluteTemplatePath),
+      };
+    }
+  }
+
+  const guidance = `Created manifest template at ${absoluteTemplatePath}. Customize it, then run Fastifest again. No manifest was generated.`;
+  logger.info(guidance);
+  return { status: "created", templatePath: absoluteTemplatePath, guidance };
 }

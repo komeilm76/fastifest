@@ -1,6 +1,6 @@
 # Fastifest — refined implementation specification
 
-**Specification status:** Approved implementation contract; Phases 2–3 are in progress. This document defines intended product behavior, not evidence that all described capabilities exist. The image pipeline, in-memory manifest assembly, manifest URL relationship validation, and manifest-last output transaction are partially implemented; template scaffolding, public API/CLI, and release remain incomplete.
+**Specification status:** Approved implementation contract; Phases 2–3 are in progress. This document defines intended product behavior, not evidence that all described capabilities exist. The image pipeline, in-memory manifest assembly, manifest URL relationship validation, manifest-last output transaction, and create-only template helper are partially implemented; generation orchestration, public API/CLI, and release remain incomplete.
 
 Related Phase 0 documents:
 
@@ -93,7 +93,7 @@ Only exact Fastifest filenames in the configured dedicated output directories ar
 - Browser URL resolution is relative to the **deployed manifest URL**, not a filesystem root. Generate relative `src` URL paths with forward slashes and no filesystem paths (for the default mapping, `icons/icon-192.png`). The manifest and output folders live inside the configured public root, so the default mapping assumes that tree is served at the same URL base (for example, `/manifest.json` and `/icons/icon-192.png`). Validate the filesystem references are contained in the public root, and document the deployment assumption and its limits.
 - Do not merge stale fields from an existing manifest. Output is based on template plus freshly generated collections.
 - Serialize UTF-8 JSON with stable two-space indentation and trailing newline. Before replacing the final manifest, verify each generated URL reference resolves to a contained, installed regular output file and that it is the file installed by this transaction. Use a temporary sibling file and atomic rename where supported, with cleanup on failure.
-- With template creation enabled, if the template is missing, create the starter, provide next-step guidance, and stop without writing a placeholder manifest. If template creation is disabled and no template exists, fail clearly.
+- With template creation enabled, if the template is missing, create the starter with an exclusive create-only file operation, provide next-step guidance, and return a distinct first-run stop result without loading the starter as manifest data. If template creation is disabled and no template exists, fail clearly. If the file already exists, load it normally regardless of the creation setting and never overwrite it.
 
 ## 8. Path safety
 
