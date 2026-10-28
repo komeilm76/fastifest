@@ -1,6 +1,6 @@
 # Configuration reference
 
-> **Pre-release guide:** These options describe the proposed public configuration. Names, defaults, and runtime validation are not yet implemented or guaranteed.
+> **Pre-release guide:** These options describe the proposed public configuration. Initial config and path validation exists for internal development, but names, defaults, and runtime behavior are not a released or guaranteed contract.
 
 Fastifest is planned to load a TypeScript default export from `fastifest.config.ts` in the project root. Unless otherwise stated, paths resolve relative to the project root from which Fastifest is run.
 

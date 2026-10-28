@@ -27,9 +27,9 @@ Gate: current foundation checks pass; continue to withhold runtime support claim
 
 ## Phase 2 — discovery and safe image processing (in progress)
 
-Added `sharp@0.35.5` as a runtime dependency and a local SVG-to-PNG smoke test. The smoke test passes under Node 20.20.2, Node 22.22.3, and Bun 1.4.4 in this workspace. This verifies the installed runtime combination here, not other operating systems or the complete compatibility matrix; no Node engine range is declared. The discovery and generation pipeline has not started.
+Added `sharp@0.35.5` as a runtime dependency and a local SVG-to-PNG smoke test. The smoke test passes under Node 20.20.2, Node 22.22.3, and Bun 1.4.4 in this workspace. Implemented deterministic direct-child discovery, exact-one-logo validation, optional screenshot handling, supported-format/content checks, input byte/pixel/side limits, SVG external-reference rejection, symlink-safe bounded reads, exact screenshot metadata matching, and deterministic NFC/code-point ordering. This validates the installed runtime combination here, not other operating systems or the complete compatibility matrix; no Node engine range is declared.
 
-Next, implement deterministic non-recursive discovery, symlink policy, file/pixel limits, strict one-logo handling, screenshot warnings, icon/screenshot generation, naming, metadata stripping, and managed-output ownership. Add small deterministic fixtures and test actual metadata/dimensions/alpha rather than brittle pixel snapshots.
+Discovery tests cover ordering, optional/invalid inputs, extension mismatches, symlinks, size/dimension limits, SVG checks, metadata, and source revalidation. Next, implement image transformations and managed-output ownership; test actual output metadata/dimensions/alpha rather than brittle pixel snapshots.
 
 Gate: malformed inputs fail usefully; valid images yield correct dimensions and formats; overwrite and stale-file cases cannot touch unowned paths; path containment passes POSIX and Windows-focused tests.
 

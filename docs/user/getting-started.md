@@ -1,6 +1,6 @@
 # Getting started
 
-> **Pre-release guide:** Fastifest is not implemented or published yet. This page describes the proposed v1 workflow; verify commands and behavior against the released version before using them.
+> **Pre-release guide:** Fastifest is not published and the complete generator is still under development. This page describes the proposed v1 workflow; its generation commands are not yet runnable.
 
 ## What you will need
 

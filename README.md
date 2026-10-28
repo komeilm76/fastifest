@@ -86,4 +86,4 @@ These guides describe the planned public interface and will be verified against 
 
 ## Status
 
-This pre-release development snapshot contains initial package and configuration foundations for internal testing, but it does not yet provide image processing, manifest generation, a runnable CLI, or a complete generation API. Fastifest is not published. Do not use the planned commands or examples as evidence of a working generator or released package.
+This pre-release development snapshot contains package, configuration, and input-discovery foundations for internal testing, but it does not yet generate icons or screenshots, write manifests, provide a runnable CLI, or expose a complete generation API. Fastifest is not published. Do not use the planned commands or examples as evidence of a working generator or released package.

@@ -6,6 +6,9 @@ export type FastifestErrorCode =
   | "TEMPLATE_LOAD_FAILED"
   | "PATH_INVALID"
   | "UNSAFE_PATH"
+  | "INPUT_INVALID"
+  | "INPUT_LIMIT"
+  | "IMAGE_INVALID"
   | "IO_FAILED";
 
 /** Error raised for expected configuration, path, or I/O failures. */
