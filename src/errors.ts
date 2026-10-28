@@ -9,6 +9,7 @@ export type FastifestErrorCode =
   | "INPUT_INVALID"
   | "INPUT_LIMIT"
   | "IMAGE_INVALID"
+  | "OUTPUT_CONFLICT"
   | "IO_FAILED";
 
 /** Error raised for expected configuration, path, or I/O failures. */

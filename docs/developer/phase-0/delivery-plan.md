@@ -1,6 +1,6 @@
 # Delivery plan and phase gates
 
-This is a staged implementation plan, not authorization to skip gates. Phase 0 has been approved, and Phase 1 is underway. Approval applies to proceeding incrementally; it does not authorize publishing or claiming later-phase behavior.
+This is a staged implementation plan, not authorization to skip gates. Phase 0 has been approved, Phase 1 is complete, and Phase 2 is underway. Approval applies to proceeding incrementally; it does not authorize publishing or claiming later-phase behavior.
 
 ## Phase 0 — specification, design, user documentation (approved)
 
@@ -19,17 +19,17 @@ Exit criteria:
 - Open decisions in `decisions.md` are confirmed or assigned.
 - No claim implies package functionality exists.
 
-## Phase 1 — foundation and contracts (in progress)
+## Phase 1 — foundation and contracts (complete; compatibility declaration outstanding)
 
-Package metadata, strict TypeScript setup, public config/template types, runtime config validation, TypeScript config/template loading, path resolution/overlap checks, symlink-component rejection, errors, and logger abstractions are implemented with focused tests. The Phase 1 baseline passed format, typecheck, 40 tests, and build on Node 22; Node 20.20.2 and Bun 1.4.4 checks also passed. Sharp runtime verification is tracked in Phase 2 below. The Node engine remains undeclared until the complete runtime/OS matrix is verified.
+Package metadata, strict TypeScript setup, public config/template types, runtime config validation, TypeScript config/template loading, path resolution/overlap checks, symlink-component rejection, errors, and logger abstractions are implemented with focused tests. The initial Phase 1 baseline passed format, typecheck, 40 tests, and build on Node 22; Node 20.20.2 and Bun 1.4.4 checks also passed. Sharp and managed-output verification are tracked in Phase 2 below. The Node engine remains undeclared until the complete runtime/OS matrix is verified.
 
-Gate: current foundation checks pass; continue to withhold runtime support claims and publish no artifacts while later runtime-sensitive functionality is unimplemented.
+Gate: foundation checks pass; continue to withhold runtime support claims and publish no artifacts while later runtime-sensitive functionality is unimplemented.
 
 ## Phase 2 — discovery and safe image processing (in progress)
 
 Added `sharp@0.35.5` as a runtime dependency and a local SVG-to-PNG smoke test. The smoke test passes under Node 20.20.2, Node 22.22.3, and Bun 1.4.4 in this workspace. Implemented deterministic direct-child discovery, exact-one-logo validation, optional screenshot handling, supported-format/content checks, input byte/pixel/side limits, SVG external-reference rejection, symlink-safe bounded reads, exact screenshot metadata matching, and deterministic NFC/code-point ordering. This validates the installed runtime combination here, not other operating systems or the complete compatibility matrix; no Node engine range is declared.
 
-Discovery tests cover ordering, optional/invalid inputs, extension mismatches, symlinks, size/dimension limits, SVG checks, metadata, and source revalidation. Logo rendering produces the four fixed PNG buffers, applies EXIF orientation and sRGB conversion, preserves transparency, fits full source bounds, enforces the maskable circular safe zone, strips metadata, and reports raster upscaling. Screenshot rendering converts inputs sequentially to deterministic PNG buffers, applies EXIF orientation/sRGB conversion, preserves alpha and explicit annotations, avoids enlargement/cropping, and caps the longest side at 4,096 pixels. Next, implement managed-output ownership; continue testing actual output metadata/dimensions/alpha rather than brittle pixel snapshots.
+Discovery tests cover ordering, optional/invalid inputs, extension mismatches, symlinks, size/dimension limits, SVG checks, metadata, and source revalidation. Logo rendering produces the four fixed PNG buffers, applies EXIF orientation and sRGB conversion, preserves transparency, fits full source bounds, enforces the maskable circular safe zone, strips metadata, and reports raster upscaling. Screenshot rendering converts inputs sequentially to deterministic PNG buffers, applies EXIF orientation/sRGB conversion, preserves alpha and explicit annotations, avoids enlargement/cropping, and caps the longest side at 4,096 pixels. Managed-output preflight now validates the four exact icon names and `screenshot-NN.png` names, checks configured output paths without creating directories or writing files, rejects overwrite-disabled collisions before mutation, preserves unrecognized files, and plans only stale regular screenshot files. A separate cleanup helper removes planned stale files only when explicitly called after manifest commit; directories are never recursively removed and cleanup failures are warnings. The full suite (83 tests), formatting, typecheck, and build pass on Node 22; all 83 tests also pass on Node 20 and Bun 1.4.4. These checks do not establish other OS/runtime support. Next, integrate the planner and cleanup helper with manifest-last transactional writes; continue testing actual output metadata/dimensions/alpha rather than brittle pixel snapshots.
 
 Gate: malformed inputs fail usefully; valid images yield correct dimensions and formats; overwrite and stale-file cases cannot touch unowned paths; path containment passes POSIX and Windows-focused tests.
 
