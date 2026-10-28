@@ -1,4 +1,11 @@
-import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  realpath,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -10,7 +17,9 @@ import { FastifestError } from "../src/errors.js";
 let projectRoot: string;
 
 beforeEach(async () => {
-  projectRoot = await mkdtemp(join(tmpdir(), "fastifest-config-"));
+  projectRoot = await realpath(
+    await mkdtemp(join(tmpdir(), "fastifest-config-")),
+  );
 });
 
 afterEach(async () => {

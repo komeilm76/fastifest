@@ -1,13 +1,14 @@
 import {
   access,
   mkdir,
+  mkdtemp,
   readFile,
+  realpath,
   rm,
   symlink,
   writeFile,
 } from "node:fs/promises";
 import { join } from "node:path";
-import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { resolveConfig } from "../src/config/resolve.js";
@@ -56,7 +57,9 @@ function makeScreenshot(
 }
 
 beforeEach(async () => {
-  projectRoot = await mkdtemp(join(tmpdir(), "fastifest-managed-"));
+  projectRoot = await realpath(
+    await mkdtemp(join(tmpdir(), "fastifest-managed-")),
+  );
   config = await resolveConfig({}, { cwd: projectRoot });
 });
 afterEach(async () => {
@@ -148,11 +151,11 @@ describe("preflightManagedOutputs", () => {
       join(config.screenshotsOutputPath, "screenshot-1.png"),
       "unreserved name",
     );
-    const newlineName = join(
-      config.screenshotsOutputPath,
-      "screenshot-07.png\n",
-    );
-    await writeFile(newlineName, "unrecognized newline name");
+    let newlineName: string | undefined;
+    if (process.platform !== "win32") {
+      newlineName = join(config.screenshotsOutputPath, "screenshot-07.png\n");
+      await writeFile(newlineName, "unrecognized newline name");
+    }
     await writeFile(
       join(config.screenshotsOutputPath, "notes.txt"),
       "user file",
@@ -170,9 +173,11 @@ describe("preflightManagedOutputs", () => {
     await expect(
       readFile(join(config.screenshotsOutputPath, "notes.txt"), "utf8"),
     ).resolves.toBe("user file");
-    await expect(readFile(newlineName, "utf8")).resolves.toBe(
-      "unrecognized newline name",
-    );
+    if (newlineName) {
+      await expect(readFile(newlineName, "utf8")).resolves.toBe(
+        "unrecognized newline name",
+      );
+    }
   });
 
   it("rejects a desired reserved output path that is a directory", async () => {
