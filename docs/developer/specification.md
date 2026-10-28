@@ -1,6 +1,6 @@
 # Fastifest — refined implementation specification
 
-**Specification status:** Approved implementation contract; Phase 1 is complete and Phases 2–3 are in progress. This document defines intended product behavior, not evidence that all described capabilities exist. The image pipeline and in-memory manifest assembly are partially implemented; manifest transaction, CLI/API, and release remain incomplete.
+**Specification status:** Approved implementation contract; Phases 2–3 are in progress. This document defines intended product behavior, not evidence that all described capabilities exist. The image pipeline, in-memory manifest assembly, and manifest-last output transaction are partially implemented; URL relationship validation, template scaffolding, public API/CLI, and release remain incomplete.
 
 Related Phase 0 documents:
 
