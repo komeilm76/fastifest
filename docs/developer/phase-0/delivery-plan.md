@@ -21,13 +21,15 @@ Exit criteria:
 
 ## Phase 1 — foundation and contracts (in progress)
 
-Package metadata, strict TypeScript setup, public config/template types, runtime config validation, TypeScript config/template loading, path resolution/overlap checks, symlink-component rejection, errors, and logger abstractions are implemented with focused tests. Formatting, typecheck, all 40 tests, and build pass on Node 22. Tests/typecheck/build also pass on Node 20.20.2, Vitest passes under Bun 1.4.4, and the built package entry smoke test passes on Node 20 and 22. The Node engine remains undeclared until `sharp` and the complete runtime matrix are verified.
+Package metadata, strict TypeScript setup, public config/template types, runtime config validation, TypeScript config/template loading, path resolution/overlap checks, symlink-component rejection, errors, and logger abstractions are implemented with focused tests. The Phase 1 baseline passed format, typecheck, 40 tests, and build on Node 22; Node 20.20.2 and Bun 1.4.4 checks also passed. Sharp runtime verification is tracked in Phase 2 below. The Node engine remains undeclared until the complete runtime/OS matrix is verified.
 
 Gate: current foundation checks pass; continue to withhold runtime support claims and publish no artifacts while later runtime-sensitive functionality is unimplemented.
 
-## Phase 2 — discovery and safe image processing
+## Phase 2 — discovery and safe image processing (in progress)
 
-Implement deterministic non-recursive discovery, symlink policy, file/pixel limits, strict one-logo handling, screenshot warnings, `sharp` processing, icon/screenshot naming, metadata stripping, and managed-output ownership. Add small deterministic generated fixtures and test actual metadata/dimensions/alpha rather than brittle pixel snapshots.
+Added `sharp@0.35.5` as a runtime dependency and a local SVG-to-PNG smoke test. The smoke test passes under Node 20.20.2, Node 22.22.3, and Bun 1.4.4 in this workspace. This verifies the installed runtime combination here, not other operating systems or the complete compatibility matrix; no Node engine range is declared. The discovery and generation pipeline has not started.
+
+Next, implement deterministic non-recursive discovery, symlink policy, file/pixel limits, strict one-logo handling, screenshot warnings, icon/screenshot generation, naming, metadata stripping, and managed-output ownership. Add small deterministic fixtures and test actual metadata/dimensions/alpha rather than brittle pixel snapshots.
 
 Gate: malformed inputs fail usefully; valid images yield correct dimensions and formats; overwrite and stale-file cases cannot touch unowned paths; path containment passes POSIX and Windows-focused tests.
 
@@ -65,7 +67,7 @@ Choose and configure one reviewable versioning approach, confirm npm package ide
 - [x] Add public configuration/template types, runtime config validation, TypeScript config/template loading, error/logger abstractions, path resolution, overlap checks, and symlink-component rejection.
 - [x] Add focused tests for defaults, malformed config/template values, config loading, path relationships, symlinked output paths, and logger thresholds.
 - [x] Pass format check, typecheck, tests, and build on Node 22; repeat typecheck, tests, and build on Node 20; run Vitest under Bun; smoke-test the built package entry on Node 20.
-- [ ] Keep the Node engine range undeclared until `sharp` installation and the complete runtime matrix have been proven.
+- [ ] Keep the Node engine range undeclared until the complete supported runtime/OS matrix, including `sharp`, has been proven.
 - [ ] Complete discovery/image generation, transactional manifest output, public API/CLI, end-to-end tests, and verified user docs in later phases.
 - [ ] Add CI, package-content verification, contributor/security/release materials, and final safety/documentation review.
 - [ ] Do not publish or create a public release without explicit authorization.
