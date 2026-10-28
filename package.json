@@ -12,6 +12,9 @@
       "import": "./dist/index.js"
     }
   },
+  "bin": {
+    "fastifest": "./dist/cli.js"
+  },
   "files": [
     "dist/**",
     "docs/user/**",
