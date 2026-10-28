@@ -1,6 +1,6 @@
 # Fastifest — refined implementation specification
 
-**Specification status:** Approved implementation contract; Phases 2–3 are in progress. This document defines intended product behavior, not evidence that all described capabilities exist. The image pipeline, in-memory manifest assembly, manifest URL relationship validation, manifest-last output transaction, and create-only template helper are partially implemented; generation orchestration, public API/CLI, and release remain incomplete.
+**Specification status:** Approved implementation contract; Phases 2–3 are in progress. This document defines intended product behavior, not evidence that all described capabilities exist. The image pipeline, in-memory manifest assembly, manifest URL relationship validation, manifest-last output transaction, create-only template helper, and shared `generateProject` operation are implemented in focused modules; CLI integration, full consumer documentation, and release remain incomplete.
 
 Related Phase 0 documents:
 
@@ -105,7 +105,7 @@ Only exact Fastifest filenames in the configured dedicated output directories ar
 
 ## 9. CLI, API, logs
 
-Provide one generation command with useful `--help`, `--config`, and `--version`; do not expand the command surface without a clear need. Expose a small programmatic API such as `generateManifest({ cwd, configPath })` if it can share the exact same core behavior. Success exits zero; validation, configuration, or generation failures exit non-zero and are not swallowed.
+Provide one generation command with useful `--help`, `--config`, and `--version`; do not expand the command surface without a clear need. The shared core is exposed as `generateProject({ cwd, configPath, logger })`; the future CLI must call this same operation rather than reimplementing pipeline steps. A `template-created` result is a successful first-run stop state and must not be treated as a completed manifest generation. CLI success exits zero; validation, configuration, or generation failures exit non-zero and are not swallowed.
 
 Logs should be stable and concise with levels `error`, `warn`, `info`, `debug`; include actionable file/key context without secrets or full config dumps. Distinguish fatal errors from per-file warnings. Summarize inputs, outputs, warnings, and elapsed time when practical. Avoid cosmetic dependencies unless justified.
 
