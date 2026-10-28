@@ -201,26 +201,82 @@ describe("preflightManagedOutputs", () => {
     ).resolves.toBe("keep");
   });
 
-  it("rejects symlinked output directories and reserved targets", async () => {
-    if (process.platform === "win32") return;
+  it("rejects symlinked or junction output directories and reserved targets", async () => {
     const external = join(projectRoot, "external-icons");
     await mkdir(config.publicRoot, { recursive: true });
     await mkdir(external, { recursive: true });
-    await symlink(external, config.iconsOutputPath);
+    const linkType = process.platform === "win32" ? "junction" : undefined;
+    await symlink(external, config.iconsOutputPath, linkType);
     await expect(
       preflightManagedOutputs(config, makeIcons(), []),
     ).rejects.toMatchObject({ code: "UNSAFE_PATH" });
 
     await rm(config.iconsOutputPath);
     await mkdir(config.iconsOutputPath, { recursive: true });
-    await symlink(
-      join(projectRoot, "external-icon.png"),
-      join(config.iconsOutputPath, "icon-192.png"),
-    );
+    const reservedTarget = join(config.iconsOutputPath, "icon-192.png");
+    const reservedLinkTarget =
+      process.platform === "win32"
+        ? external
+        : join(projectRoot, "external-icon.png");
+    await symlink(reservedLinkTarget, reservedTarget, linkType);
     await expect(
       preflightManagedOutputs(config, makeIcons(), []),
     ).rejects.toMatchObject({ code: "UNSAFE_PATH" });
   });
+
+  it.skipIf(process.platform !== "win32")(
+    "detects a case-insensitive collision with a differently-cased reserved icon",
+    async () => {
+      await mkdir(config.iconsOutputPath, { recursive: true });
+      const differentlyCased = join(config.iconsOutputPath, "ICON-192.png");
+      await writeFile(differentlyCased, "user-owned icon");
+
+      await expect(
+        preflightManagedOutputs(config, makeIcons(), []),
+      ).rejects.toMatchObject({ code: "PATH_INVALID" });
+      await expect(readFile(differentlyCased, "utf8")).resolves.toBe(
+        "user-owned icon",
+      );
+    },
+  );
+
+  it.skipIf(process.platform !== "win32")(
+    "rejects Windows traversal, absolute output paths, and nested output overlap",
+    async () => {
+      await expect(
+        resolveConfig(
+          { paths: { output: { logos: String.raw`..\outside` } } },
+          { cwd: projectRoot },
+        ),
+      ).rejects.toMatchObject({ code: "UNSAFE_PATH" });
+
+      for (const absolutePath of [
+        String.raw`C:\fastifest-icons`,
+        String.raw`\\server\share\icons`,
+      ]) {
+        await expect(
+          resolveConfig(
+            { paths: { output: { logos: absolutePath } } },
+            { cwd: projectRoot },
+          ),
+        ).rejects.toThrowError("must be relative to config.paths.public");
+      }
+
+      await expect(
+        resolveConfig(
+          {
+            paths: {
+              output: {
+                logos: "assets",
+                screenshots: String.raw`assets\nested`,
+              },
+            },
+          },
+          { cwd: projectRoot },
+        ),
+      ).rejects.toThrowError("Output paths must not overlap");
+    },
+  );
 });
 
 describe("removeStaleScreenshotsAfterManifestCommit", () => {
@@ -260,5 +316,31 @@ describe("removeStaleScreenshotsAfterManifestCommit", () => {
     );
     expect(warnings).toHaveLength(1);
     await expect(access(stale)).resolves.toBeUndefined();
+  });
+
+  it("warns and leaves a junction or symlink at a planned stale path", async () => {
+    await mkdir(config.screenshotsOutputPath, { recursive: true });
+    const stale = join(config.screenshotsOutputPath, "screenshot-15.png");
+    await writeFile(stale, "stale");
+    const plan = await preflightManagedOutputs(config, makeIcons(), []);
+
+    const external = join(projectRoot, "external-stale-target");
+    await mkdir(external, { recursive: true });
+    await writeFile(join(external, "keep.txt"), "keep");
+    await rm(stale);
+    await symlink(
+      external,
+      stale,
+      process.platform === "win32" ? "junction" : undefined,
+    );
+
+    const warnings = await removeStaleScreenshotsAfterManifestCommit(
+      plan,
+      silentLogger,
+    );
+    expect(warnings).toHaveLength(1);
+    await expect(readFile(join(stale, "keep.txt"), "utf8")).resolves.toBe(
+      "keep",
+    );
   });
 });
