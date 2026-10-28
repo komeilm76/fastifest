@@ -1,7 +1,8 @@
 #!/usr/bin/env node
+import { realpathSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { FastifestError } from "./errors.js";
 import { generateProject } from "./generation.js";
 import type { Logger } from "./logger.js";
@@ -168,10 +169,15 @@ export async function runCli(
 
 function isMainModule(): boolean {
   const entryPath = process.argv[1];
-  return (
-    entryPath !== undefined &&
-    pathToFileURL(resolve(entryPath)).href === import.meta.url
-  );
+  if (entryPath === undefined) return false;
+  try {
+    return (
+      realpathSync(resolve(entryPath)) ===
+      realpathSync(fileURLToPath(import.meta.url))
+    );
+  } catch {
+    return false;
+  }
 }
 
 if (isMainModule()) {
