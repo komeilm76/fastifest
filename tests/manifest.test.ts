@@ -213,6 +213,25 @@ describe("buildManifest", () => {
     ).toThrowError(/id.*same origin/);
   });
 
+  it("warns when URL parsing trims whitespace around an absolute start_url", async () => {
+    const config = await makeConfig();
+    const result = buildManifest(
+      config,
+      {
+        ...completeTemplate,
+        start_url: " https://fastifest.invalid/app/start ",
+        scope: "/app/",
+      },
+      makeIcons(),
+      [makeScreenshot()],
+      { logger: silentLogger },
+    );
+
+    expect(result.warnings).toContain(
+      "Manifest template contains absolute URLs; Fastifest assumes deployment on origin https://fastifest.invalid for relationship checks because the final site origin is unknown.",
+    );
+  });
+
   it("accepts a consistent absolute deployment origin and warns that it is assumed", async () => {
     const config = await makeConfig();
     const result = buildManifest(

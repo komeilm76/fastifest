@@ -134,8 +134,14 @@ const FALLBACK_MANIFEST_URL = new URL(
 const URL_SCHEME = /^[A-Za-z][A-Za-z\d+.-]*:/;
 
 function isAbsoluteUrlReference(value: string): boolean {
+  // Match URL parser preprocessing: strip tabs/newlines globally and surrounding C0/space.
+  const normalized = value
+    .replace(/[\t\n\r]/g, "")
+    .replace(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/g, "");
   return (
-    URL_SCHEME.test(value) || value.startsWith("//") || value.startsWith("\\\\")
+    URL_SCHEME.test(normalized) ||
+    normalized.startsWith("//") ||
+    normalized.startsWith("\\\\")
   );
 }
 
