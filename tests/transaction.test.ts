@@ -330,6 +330,52 @@ describe("commitGeneration", () => {
     await expect(readdir(config.iconsOutputPath)).resolves.toEqual([]);
   });
 
+  it("preserves a generated asset changed in place before rollback", async () => {
+    await mkdir(config.iconsOutputPath, { recursive: true });
+    await mkdir(config.publicRoot, { recursive: true });
+    const changedIcon = join(config.iconsOutputPath, "icon-192.png");
+    await writeFile(changedIcon, "old icon");
+    await writeFile(config.manifestPath, "old manifest\n");
+
+    let changedBeforeManifestFailure = false;
+    let failure: unknown;
+    try {
+      await commitGeneration(config, template, makeIcons(), [], {
+        logger: silentLogger,
+        fileOperations: {
+          rename: async (source, destination) => {
+            if (
+              !changedBeforeManifestFailure &&
+              destination === config.manifestPath &&
+              source.includes(".fastifest-stage-")
+            ) {
+              changedBeforeManifestFailure = true;
+              await writeFile(changedIcon, "bad:icon-192.png");
+              throw new Error("simulated manifest replacement failure");
+            }
+            await rename(source, destination);
+          },
+        },
+      });
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).toMatchObject({ code: "IO_FAILED" });
+    const failureMessage = failure instanceof Error ? failure.message : "";
+    const backupPath = failureMessage.match(
+      /previous output backup preserved at (.+)/,
+    )?.[1];
+    expect(backupPath).toBeDefined();
+    await expect(readFile(backupPath!, "utf8")).resolves.toBe("old icon");
+    await expect(readFile(changedIcon, "utf8")).resolves.toBe(
+      "bad:icon-192.png",
+    );
+    await expect(readFile(config.manifestPath, "utf8")).resolves.toBe(
+      "old manifest\n",
+    );
+  });
+
   it("reports stale cleanup failures as warnings after committing the manifest", async () => {
     await mkdir(config.screenshotsOutputPath, { recursive: true });
     const stalePath = join(config.screenshotsOutputPath, "screenshot-12.png");

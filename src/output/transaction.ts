@@ -74,6 +74,19 @@ function sameFile(first: Stats, second: Stats): boolean {
   return first.dev === second.dev && first.ino === second.ino;
 }
 
+// Link and rename operations can change ctime themselves; use this check across those operations.
+function sameFileContents(first: Stats, second: Stats): boolean {
+  return (
+    sameFile(first, second) &&
+    first.size === second.size &&
+    first.mtimeMs === second.mtimeMs
+  );
+}
+
+function unchangedFile(first: Stats, second: Stats): boolean {
+  return sameFileContents(first, second) && first.ctimeMs === second.ctimeMs;
+}
+
 function isWithin(parent: string, child: string): boolean {
   const pathFromParent = relative(parent, child);
   return (
@@ -290,7 +303,7 @@ async function verifyGeneratedReferences(
     if (
       installed.isSymbolicLink() ||
       !installed.isFile() ||
-      !sameFile(installed, staged.info)
+      !unchangedFile(installed, staged.info)
     ) {
       throw new FastifestError(
         "UNSAFE_PATH",
@@ -421,6 +434,7 @@ async function stageFile(
       stagedFiles.push(stagedFile);
       await handle.writeFile(data);
       await handle.sync();
+      stagedFile.info = await handle.stat();
     } catch (error) {
       if (error instanceof FastifestError) throw error;
       throw new FastifestError(
@@ -436,7 +450,7 @@ async function stageFile(
     if (
       current.isSymbolicLink() ||
       !current.isFile() ||
-      !sameFile(current, stagedFile.info)
+      !unchangedFile(current, stagedFile.info)
     ) {
       throw new FastifestError(
         "UNSAFE_PATH",
@@ -501,7 +515,7 @@ async function replaceFile(
   if (
     stagedNow.isSymbolicLink() ||
     !stagedNow.isFile() ||
-    !sameFile(stagedNow, staged.info)
+    !unchangedFile(stagedNow, staged.info)
   ) {
     throw new FastifestError(
       "UNSAFE_PATH",
@@ -549,14 +563,25 @@ async function replaceFile(
     if (
       installedInfo.isSymbolicLink() ||
       !installedInfo.isFile() ||
-      !sameFile(installedInfo, staged.info)
+      !sameFileContents(installedInfo, staged.info)
     ) {
       throw new FastifestError(
         "UNSAFE_PATH",
         `Committed output changed unexpectedly: ${staged.targetPath}`,
       );
     }
-    await removeOwnedFile(staged.path, staged.info, "staged output");
+    record.stagedInfo = installedInfo;
+    staged.info = installedInfo;
+    await removeOwnedFile(staged.path, installedInfo, "staged output");
+    const finalInfo = await lstat(staged.targetPath);
+    if (!sameFileContents(finalInfo, installedInfo)) {
+      throw new FastifestError(
+        "UNSAFE_PATH",
+        `Committed output changed unexpectedly: ${staged.targetPath}`,
+      );
+    }
+    record.stagedInfo = finalInfo;
+    staged.info = finalInfo;
     return;
   }
 
@@ -578,13 +603,15 @@ async function replaceFile(
   if (
     installedInfo.isSymbolicLink() ||
     !installedInfo.isFile() ||
-    !sameFile(installedInfo, staged.info)
+    !sameFileContents(installedInfo, staged.info)
   ) {
     throw new FastifestError(
       "UNSAFE_PATH",
       `Committed output changed unexpectedly: ${staged.targetPath}`,
     );
   }
+  record.stagedInfo = installedInfo;
+  staged.info = installedInfo;
 }
 
 async function statIfExists(path: string): Promise<Stats | undefined> {
@@ -627,10 +654,10 @@ async function rollback(
           current &&
           (current.isSymbolicLink() ||
             !current.isFile() ||
-            !sameFile(current, record.stagedInfo))
+            !unchangedFile(current, record.stagedInfo))
         ) {
           throw new Error(
-            `Refusing to replace changed transaction output: ${record.targetPath}`,
+            `Refusing to replace changed transaction output: ${record.targetPath}${record.backupPath ? `; previous output backup preserved at ${record.backupPath}` : ""}`,
           );
         }
         if (record.backupPath) {
@@ -650,7 +677,7 @@ async function rollback(
         } else if (current) {
           await rejectSymlinkComponents(record.targetPath, "rollback target");
           const verify = await statIfExists(record.targetPath);
-          if (!verify || !sameFile(verify, record.stagedInfo)) {
+          if (!verify || !unchangedFile(verify, record.stagedInfo)) {
             throw new Error(
               `Transaction output changed during rollback: ${record.targetPath}`,
             );
@@ -675,7 +702,7 @@ async function rollback(
           await renameFile(record.backupPath, record.targetPath);
         } else {
           throw new Error(
-            `Refusing to replace changed transaction output: ${record.targetPath}`,
+            `Refusing to replace changed transaction output: ${record.targetPath}; previous output backup preserved at ${record.backupPath}`,
           );
         }
       } else if (current) {
@@ -707,7 +734,7 @@ async function removeOwnedFile(
   if (
     current.isSymbolicLink() ||
     !current.isFile() ||
-    !sameFile(current, expected)
+    !unchangedFile(current, expected)
   ) {
     throw new FastifestError(
       "UNSAFE_PATH",
@@ -720,7 +747,7 @@ async function removeOwnedFile(
     !verify ||
     verify.isSymbolicLink() ||
     !verify.isFile() ||
-    !sameFile(verify, expected)
+    !unchangedFile(verify, expected)
   ) {
     throw new FastifestError(
       "UNSAFE_PATH",

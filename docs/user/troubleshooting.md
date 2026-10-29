@@ -38,7 +38,7 @@ The manifest and generated assets must remain inside the configured public root;
 
 ## Generation fails during writing
 
-Fastifest validates and prepares output before updating the manifest. A caught transaction failure attempts to restore replaced files and preserve the previous manifest. Updating several image files cannot be fully atomic across a process crash or power loss. If generation is interrupted, rerun it with the same configuration to restore a consistent output set. Do not delete the entire output folder; unrelated files may be present.
+Fastifest validates and prepares output before updating the manifest. A caught transaction failure attempts to restore replaced files and preserve the previous manifest. If rollback detects a generated output changed during the transaction, it refuses to overwrite that change and reports the path to a preserved previous-output backup. Keep that backup and inspect it before retrying; do not delete it or rerun until you decide which file contents to retain. Updating several image files cannot be fully atomic across a process crash or power loss. If generation is interrupted, inspect the output set and rerun only after resolving any reported conflicts. Do not delete the entire output folder; unrelated files may be present.
 
 ## Manifest URLs do not load
 
