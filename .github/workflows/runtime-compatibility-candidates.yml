@@ -70,3 +70,33 @@ jobs:
 
       - name: Run full checks under Bun
         run: bun run check
+
+  minimum-node-packed-install:
+    name: ${{ matrix.os }} · Node 20.9.0 packed-install candidate
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Set up Node.js at the candidate floor
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 20.9.0
+
+      - name: Set up Bun for lockfile installation
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.4
+
+      - name: Install development dependencies from the committed lockfile
+        run: bun install --frozen-lockfile
+
+      - name: Smoke-test the packed package and CLI on the candidate floor
+        env:
+          FASTIFEST_EXPECTED_NODE: 20.9.0
+        run: node scripts/verify-minimum-node-runtime.mjs
