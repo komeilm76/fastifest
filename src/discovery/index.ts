@@ -219,7 +219,7 @@ async function validateEmbeddedImageReference(
   const base64 = match[2]!.replace(/\s/g, "");
   if (
     base64.length === 0 ||
-    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
+    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}(?:==)?|[A-Za-z0-9+/]{3}=?)?$/.test(
       base64,
     )
   ) {

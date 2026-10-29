@@ -338,7 +338,7 @@ describe("discoverInputs", () => {
     await addLogo(
       "brand.svg",
       Buffer.from(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><image href="data:image/png;base64,${validEmbeddedImage.toString("base64")}" width="4" height="3"/></svg>`,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><image href="data:image/png;base64,${validEmbeddedImage.toString("base64").replace(/=+$/, "")}" width="4" height="3"/></svg>`,
       ),
     );
     await expect(
