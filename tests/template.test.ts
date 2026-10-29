@@ -64,6 +64,58 @@ describe("validateTemplate", () => {
     expect(() => validateTemplate(template)).toThrowError(message);
   });
 
+  it("does not read inherited template properties from a polluted Object prototype", () => {
+    const original = Object.getOwnPropertyDescriptor(Object.prototype, "name");
+    let reads = 0;
+    try {
+      Object.defineProperty(Object.prototype, "name", {
+        configurable: true,
+        get: () => {
+          reads += 1;
+          return "Injected";
+        },
+      });
+
+      expect(validateTemplate({ short_name: "App" })).toEqual({
+        short_name: "App",
+      });
+      expect(reads).toBe(0);
+    } finally {
+      if (original) Object.defineProperty(Object.prototype, "name", original);
+      else Reflect.deleteProperty(Object.prototype, "name");
+    }
+  });
+
+  it("rejects sparse arrays without reading inherited array values", () => {
+    const original = Object.getOwnPropertyDescriptor(Object.prototype, "0");
+    const values = new Array(1);
+    let reads = 0;
+    let thrown: unknown;
+    try {
+      Object.defineProperty(Object.prototype, "0", {
+        configurable: true,
+        get: () => {
+          reads += 1;
+          return "injected";
+        },
+      });
+      try {
+        validateTemplate({ name: "Example", categories: values });
+      } catch (error) {
+        thrown = error;
+      }
+    } finally {
+      if (original) Object.defineProperty(Object.prototype, "0", original);
+      else Reflect.deleteProperty(Object.prototype, "0");
+    }
+
+    expect(reads).toBe(0);
+    expect(thrown).toMatchObject({ code: "TEMPLATE_INVALID" });
+    expect((thrown as Error).message).toContain(
+      "sparse arrays are not JSON-compatible",
+    );
+  });
+
   it("rejects accessor properties instead of serializing changing template values", () => {
     const template = {
       get name() {

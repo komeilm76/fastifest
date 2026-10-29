@@ -65,6 +65,9 @@ function assertJsonValue(
 
   if (Array.isArray(value)) {
     for (let index = 0; index < value.length; index += 1) {
+      if (!Object.hasOwn(value, index)) {
+        invalid(`${field}[${index}]`, "sparse arrays are not JSON-compatible.");
+      }
       assertJsonValue(value[index], `${field}[${index}]`, visited);
     }
   } else {
@@ -111,6 +114,17 @@ function requireObjectArray(
 export function validateTemplate(value: unknown): ManifestTemplate {
   if (!isRecord(value)) invalid("", "expected a default-exported object.");
   assertJsonValue(value, "", new WeakSet<object>());
+  const ownValue = Object.create(null) as UnknownRecord;
+  for (const key of Reflect.ownKeys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (typeof key !== "string" || !descriptor?.enumerable) continue;
+    Object.defineProperty(ownValue, key, {
+      value: descriptor.value,
+      configurable: true,
+      enumerable: true,
+      writable: true,
+    });
+  }
   if (Object.hasOwn(value, "icons"))
     invalid(
       "icons",
@@ -123,47 +137,58 @@ export function validateTemplate(value: unknown): ManifestTemplate {
     );
   }
   for (const field of STRING_FIELDS) {
-    if (value[field] !== undefined) requireString(value[field], field);
+    if (ownValue[field] !== undefined) requireString(ownValue[field], field);
   }
   for (const field of ["name", "short_name"] as const) {
-    if (typeof value[field] === "string" && value[field].trim().length === 0) {
+    if (
+      typeof ownValue[field] === "string" &&
+      ownValue[field].trim().length === 0
+    ) {
       invalid(field, "expected a non-empty string.");
     }
   }
-  if (typeof value.name !== "string" && typeof value.short_name !== "string") {
+  if (
+    typeof ownValue.name !== "string" &&
+    typeof ownValue.short_name !== "string"
+  ) {
     invalid("", "provide at least one of name or short_name.");
   }
   for (const field of STRING_ARRAY_FIELDS) {
-    if (value[field] !== undefined) requireStringArray(value[field], field);
+    if (ownValue[field] !== undefined)
+      requireStringArray(ownValue[field], field);
   }
   if (
-    value.dir !== undefined &&
-    value.dir !== "ltr" &&
-    value.dir !== "rtl" &&
-    value.dir !== "auto"
+    ownValue.dir !== undefined &&
+    ownValue.dir !== "ltr" &&
+    ownValue.dir !== "rtl" &&
+    ownValue.dir !== "auto"
   ) {
     invalid("dir", 'expected "ltr", "rtl", or "auto".');
   }
   if (
-    value.prefer_related_applications !== undefined &&
-    typeof value.prefer_related_applications !== "boolean"
+    ownValue.prefer_related_applications !== undefined &&
+    typeof ownValue.prefer_related_applications !== "boolean"
   ) {
     invalid("prefer_related_applications", "expected a boolean.");
   }
-  if (value.launch_handler !== undefined && !isRecord(value.launch_handler)) {
+  if (
+    ownValue.launch_handler !== undefined &&
+    !isRecord(ownValue.launch_handler)
+  ) {
     invalid("launch_handler", "expected a JSON object.");
   }
   if (
-    value.scope_extensions !== undefined &&
-    !Array.isArray(value.scope_extensions)
+    ownValue.scope_extensions !== undefined &&
+    !Array.isArray(ownValue.scope_extensions)
   ) {
     invalid("scope_extensions", "expected an array.");
   }
   for (const field of OBJECT_ARRAY_FIELDS) {
-    if (value[field] !== undefined) requireObjectArray(value[field], field);
+    if (ownValue[field] !== undefined)
+      requireObjectArray(ownValue[field], field);
   }
 
-  return value as ManifestTemplate;
+  return ownValue as ManifestTemplate;
 }
 
 /**
