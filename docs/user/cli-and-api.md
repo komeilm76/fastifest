@@ -1,46 +1,60 @@
 # CLI and API
 
-> **Pre-release guide:** Fastifest has no runnable CLI or API yet. The interface below is proposed and will be replaced or confirmed after implementation.
+> **Pre-release:** Fastifest is not published to npm yet. The interface below describes the current source package; install from the npm registry when a release is available.
 
-## CLI (planned)
+## CLI
 
-The default command will generate the manifest and assets from the current project:
+Run the command from the consuming project's root:
 
 ```sh
 npx fastifest
 ```
 
-Select a config file with:
+Select a config file with `--config` or `-c`:
 
 ```sh
 npx fastifest --config ./config/fastifest.config.ts
+npx fastifest --config=./config/fastifest.config.ts
 ```
 
-Planned options:
+| Option                  | Purpose                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| `-h`, `--help`          | Print usage and supported options.                                             |
+| `-c`, `--config <path>` | Load a config file; relative paths resolve from the current working directory. |
+| `-v`, `--version`       | Print the installed package version.                                           |
 
-| Option            | Purpose                                                    |
-| ----------------- | ---------------------------------------------------------- |
-| `--help`          | Show usage and available options.                          |
-| `--config <path>` | Use a config other than the default `fastifest.config.ts`. |
-| `--version`       | Print the installed Fastifest version.                     |
+Usage errors exit with status `2`. Configuration, validation, and generation errors exit with status `1` and a concise diagnostic. Successful generation exits `0`. Creating a missing template is a successful first-run stop: Fastifest creates the starter, prints next steps, and does not generate `manifest.json` or image assets until another run.
 
-Run the CLI from your project root; the current working directory is the project root for config and project paths. A relative `--config` path is resolved from that directory. Success should exit with status `0`; configuration, validation, or generation failures should exit non-zero and include an actionable message.
+## Programmatic API
 
-## Programmatic API (planned)
-
-A small typed API may expose the same operation as the CLI:
+The package exports `generateProject`, which uses the same generation pipeline as the CLI:
 
 ```ts
-import { generateManifest } from "fastifest";
+import { generateProject } from "fastifest";
 
-await generateManifest({
+const result = await generateProject({
   cwd: process.cwd(),
-  configPath: "./fastifest.config.ts",
+  configPath: "./fastifest.config.ts", // optional
 });
+
+if (result.status === "template-created") {
+  // Customize result.templatePath, then call again.
+  console.info(result.guidance);
+} else {
+  console.info(`Wrote ${result.manifestPath}`);
+  console.info(`Warnings: ${result.warnings.length}`);
+}
 ```
 
-The API signature, return value, and error types are not final. CLI and API must share the same generation implementation and validation behavior; they should not be separate code paths.
+`cwd` defaults to the current working directory. `configPath` is optional and, when relative, resolves from `cwd`. An optional `logger` can override pipeline logging.
+
+The result is a discriminated union:
+
+- `status: "template-created"` includes `templatePath` and `guidance`. Treat this as a stop result; no manifest or generated assets were written.
+- `status: "generated"` includes `manifestPath`, the manifest `value` and serialized `json`, `warnings`, the logo source path, and screenshot source paths.
+
+Generation errors are thrown as `FastifestError` values with a stable `code`; callers should handle failures rather than treating a partial result as success.
 
 ## Runtime compatibility
 
-The intended toolchain uses Bun for development. The package's supported consumer runtimes will be stated only after config/template loading and `sharp` installation have been tested on them. See the published package's engine requirements when available; do not assume Bun is required or that every Node.js/Bun version is supported.
+Fastifest has not declared an engine range or completed its runtime/OS support matrix. Node 22 is used for full local checks; focused Windows suites have passed on Node 20 and 22. A temporary packed install was smoke-tested locally. These results do not establish whole-package support for every runtime or operating system. Check release documentation before selecting a production runtime.

@@ -1,8 +1,8 @@
 # Configuration reference
 
-> **Pre-release guide:** These options describe the proposed public configuration. Initial config and path validation exists for internal development, but names, defaults, and runtime behavior are not a released or guaranteed contract.
+> **Pre-release:** Fastifest is not published to npm yet. This reference describes the current source package; registry installation and a general runtime-support guarantee are not available until release.
 
-Fastifest is planned to load a TypeScript default export from `fastifest.config.ts` in the project root. Unless otherwise stated, paths resolve relative to the project root from which Fastifest is run.
+Fastifest optionally loads a TypeScript default export from `fastifest.config.ts` in the project root. Run the CLI from the consuming project root; most relative paths resolve from that directory, except manifest/output paths, which resolve from `paths.public`. Config and template files execute code. Only load files you trust.
 
 ## Example
 
@@ -29,65 +29,65 @@ export default {
 } satisfies FastifestConfig;
 ```
 
+Unknown config keys and malformed values are rejected with field-specific errors.
+
 ## `paths`
 
-| Option                     | Proposed default       | Meaning                                                                                                    |
-| -------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `logos`                    | `./assets/logos`       | Required directory containing exactly one supported logo.                                                  |
-| `screenshots`              | `./assets/screenshots` | Optional directory containing screenshots.                                                                 |
-| `public`                   | `./public`             | Root directory served by your web application.                                                             |
-| `manifest`                 | `./manifest.json`      | Manifest output path, relative to `paths.public`; V1 requires `manifest.json` directly inside that folder. |
-| `paths.output.logos`       | `./icons`              | Icon output directory, relative to `paths.public`.                                                         |
-| `paths.output.screenshots` | `./screenshots`        | Screenshot output directory, relative to `paths.public`.                                                   |
+| Option                     | Default                | Meaning                                                                 |
+| -------------------------- | ---------------------- | ----------------------------------------------------------------------- |
+| `logos`                    | `./assets/logos`       | Required non-recursive input directory with exactly one supported logo. |
+| `screenshots`              | `./assets/screenshots` | Optional non-recursive input directory for screenshots.                 |
+| `public`                   | `./public`             | Public output root, relative to the project root.                       |
+| `manifest`                 | `./manifest.json`      | Must resolve to `manifest.json` directly inside `paths.public`.         |
+| `paths.output.logos`       | `./icons`              | Generated icon directory, relative to `paths.public`.                   |
+| `paths.output.screenshots` | `./screenshots`        | Generated screenshot directory, relative to `paths.public`.             |
 
-The manifest and generated output directories stay inside the public root. Logo and screenshot input directories may not overlap each other or generated output directories. The proposed v1 policy rejects symlinked input entries and symlink/reparse-point output components or reserved targets rather than following them. Keep the output directories dedicated to Fastifest: its generated names are reserved, and hand-managed files with those names may be replaced when overwrite is enabled. Fastifest cannot infer how your framework maps filesystem paths to deployed URLs; the default assumes the public directory is served at the same URL base, with `manifest.json` beside the generated asset folders. See [Web App Manifest and PWA basics](manifest-and-pwa.md#understand-url-resolution).
+The default output tree is `public/manifest.json`, `public/icons/`, and `public/screenshots/`. Output directories must remain inside the public root and may not overlap each other, the manifest, or input paths. Fastifest does not infer framework-specific URL rewrites: configure your deployment so the public files are served at paths matching the manifest's relative URLs.
+
+Input directories are scanned non-recursively. Supported logos are PNG, JPG, JPEG, and SVG. Supported screenshots are PNG, JPG, and JPEG. A missing or empty screenshot directory is allowed and produces a warning. Invalid supported images and extension/content mismatches fail validation.
 
 ## `template`
 
-| Option    | Proposed default         | Meaning                                          |
-| --------- | ------------------------ | ------------------------------------------------ |
-| `enabled` | `true`                   | Create a starter template if one does not exist. |
-| `path`    | `./manifest.template.ts` | Template location, relative to project root.     |
+| Option    | Default                  | Meaning                                                               |
+| --------- | ------------------------ | --------------------------------------------------------------------- |
+| `enabled` | `true`                   | Create a starter template if it is missing; does not disable loading. |
+| `path`    | `./manifest.template.ts` | TypeScript template location, relative to the project root.           |
 
-An existing template must never be silently replaced. With `enabled: true`, the first run that finds no template creates a starter, prints next steps, and exits without writing a manifest; fill in the starter and run again. `enabled` controls only creation of a missing starter, not template loading. If disabled and the file is missing, generation should fail; if the file exists, it is still loaded and validated. The template must include at least one of `name` or `short_name`. Template files are executable TypeScript, not inert JSON. Only load trusted project files. Fastifest generates `icons` and `screenshots`; these properties should not appear in template data. Each successful run regenerates `manifest.json` from the template and current assets; existing manifest fields are not merged.
+If creation is enabled and the template is missing, Fastifest creates it once, prints next steps, and stops without generating `manifest.json` or image assets. Customize the file and run again. If creation is disabled and the file is missing, Fastifest reports `TEMPLATE_MISSING`. If a template already exists, it is loaded and validated regardless of `enabled`; its bytes are never overwritten automatically. Template data must provide at least one of `name` or `short_name`. Fastifest owns `icons` and `screenshots`, so those keys are rejected in the template. Existing manifest fields are not merged into new output.
 
 ## `screenshots.metadata` (optional)
 
-Screenshot discovery does not require listing filenames. If you want to add accurate manifest metadata, optionally provide a map keyed by the exact source filename:
+Metadata annotates discovered screenshot files; it does not select them. Keys must exactly match source basenames, including case and extension:
 
 ```ts
 screenshots: {
   metadata: {
-    'home.png': {
-      label: 'Home screen showing the main dashboard',
-      formFactor: 'wide',
+    "home.png": {
+      label: "Home screen showing the main dashboard",
+      formFactor: "wide",
     },
   },
 }
 ```
 
-`label` is an accessible name for a screenshot and should describe the actual screen. `formFactor` may be `narrow` or `wide` and is converted to the manifest's `form_factor` member; set it only when you know the screenshot represents that layout. Fastifest must not guess either value from the filename or image dimensions. The map annotates discovered files; it does not control which files are discovered. A key that does not match a discovered screenshot should fail validation. If no metadata is given, the generated screenshot entry has no `label` or `form_factor`.
+A non-empty `label`, `formFactor` (`"narrow"` or `"wide"`), or both may be supplied. Fastifest serializes `formFactor` as the manifest member `form_factor`. It does not infer either value from filenames or image dimensions. Metadata keys that do not match discovered files fail validation. If no screenshots are found, the manifest omits the `screenshots` member.
 
 ## `images`
 
-| Option      | Proposed default | Meaning                                                                                                                                      |
-| ----------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `overwrite` | `true`           | Allow replacement of reserved Fastifest output filenames in configured output directories. It does not authorize arbitrary file replacement. |
+| Option      | Default | Meaning                                                                                       |
+| ----------- | ------- | --------------------------------------------------------------------------------------------- |
+| `overwrite` | `true`  | Allow replacement of reserved generated image filenames in the configured output directories. |
 
-With overwrite disabled, Fastifest is planned to check before writing or deleting: if any reserved image output file would be created, replaced, or removed (including an obsolete screenshot), it fails without changing files. This option applies only to image assets; after successful validation, `manifest.json` is regenerated from the template and generated assets. The template itself is never overwritten. Use dedicated output directories: Fastifest reserves its generated filenames, so a hand-managed file with the same name may be replaced when overwrite is enabled. It must not overwrite files outside its reserved names or recursively delete directories. Stale generated screenshot files are intended to be removed only after a successful manifest update.
+This option applies to managed image outputs, not arbitrary files. With overwrite disabled, if a reserved image output already exists or a reserved stale screenshot would be removed, generation fails before changing files. With overwrite enabled, Fastifest only replaces its reserved icon names and `screenshot-NN.png` names in dedicated output directories. It does not recursively delete directories or remove unrecognized files. Stale reserved screenshots are cleaned only after the new manifest commits. `manifest.json` is regenerated from the template and generated assets; it is not merged with old values.
 
 ## `logging`
 
-| Option  | Proposed default | Values                               |
-| ------- | ---------------- | ------------------------------------ |
-| `level` | `info`           | `error`, `warn`, `info`, or `debug`. |
+| Option  | Default | Values                               |
+| ------- | ------- | ------------------------------------ |
+| `level` | `info`  | `error`, `warn`, `info`, or `debug`. |
 
-Invalid values should fail with a field-specific diagnostic. Logs should not print the entire config or environment.
+Logs include actionable paths and diagnostics; they do not dump the complete config.
 
-## Explicit config path
+## Selecting a config file
 
-The planned CLI option is `--config <path>`. Run the command from the consuming project's root; relative config paths resolve from that current working directory, while absolute paths may also be used. TypeScript config loading support will be specified after it has been tested on supported runtimes.
-
-## Release note
-
-This reference is a proposal, not a supported configuration contract yet. The released package documentation will list only options, defaults, limits, and path rules that have been implemented and tested.
+Use `fastifest --config <path>` or `fastifest -c <path>`. Relative paths resolve from the current working directory; absolute paths are accepted. Without this option, Fastifest looks for `fastifest.config.ts` in the project root and uses defaults if it is absent.

@@ -1,18 +1,28 @@
 # Fastifest
 
-> **Pre-release:** Fastifest is under active development and is not published. The config/type foundation is in place, but the image generator and CLI are not complete; install and generation commands below are plans, not runnable product instructions.
+> **Pre-release:** Fastifest is not published to npm yet. Its source package includes a working generator, programmatic API, and CLI, but installation from the npm registry is not available until a release is authorized. Runtime and operating-system support are still being established.
 
-Fastifest is being built as a small project tool that discovers a logo and optional screenshots, creates standardized PNG assets, and generates a Web App Manifest (`manifest.json`). It is designed to remove repetitive icon resizing while keeping generated files predictable and reviewable.
+Fastifest discovers one logo and optional screenshots, creates standardized PNG assets, and writes a Web App Manifest (`manifest.json`) directly inside your public directory.
 
-## Planned quick start
+## Quick start
 
-After a release is available, the intended workflow is:
+Once the package is published, install it as a development dependency:
 
 ```sh
 npm install --save-dev fastifest
 ```
 
-Add one logo to `assets/logos/` and optional screenshots to `assets/screenshots/`. Create `fastifest.config.ts` in your project root:
+Place exactly one supported logo in `assets/logos/` and any optional screenshots in `assets/screenshots/`. Run Fastifest from the project root:
+
+```sh
+npx fastifest
+```
+
+On the first run, if `manifest.template.ts` is missing, Fastifest creates a starter and stops without generating a manifest. Customize the template and run the command again.
+
+## Configuration
+
+Fastifest works with defaults or a project-root `fastifest.config.ts`:
 
 ```ts
 import type { FastifestConfig } from "fastifest";
@@ -37,23 +47,17 @@ export default {
 } satisfies FastifestConfig;
 ```
 
-The planned default command is:
+Use `npx fastifest --config ./path/to/config.ts` to select another config file. See the [configuration reference](docs/user/configuration.md) for defaults, path rules, screenshot annotations, and overwrite behavior.
 
-```sh
-npx fastifest
-```
-
-The exact install/runtime requirements and command will be confirmed by implementation and CI before publication.
-
-## Planned output
+## Output
 
 ```text
 project/
 ├── assets/
-│   ├── logos/                 # exactly one source logo
+│   ├── logos/                 # exactly one logo
 │   └── screenshots/           # optional source screenshots
 ├── fastifest.config.ts
-├── manifest.template.ts       # created if enabled; never overwritten
+├── manifest.template.ts       # create-only starter, if missing
 └── public/
     ├── manifest.json
     ├── icons/
@@ -61,29 +65,19 @@ project/
     │   ├── icon-512.png
     │   ├── icon-maskable-192.png
     │   └── icon-maskable-512.png
-    └── screenshots/
-        └── screenshot-01.png
+    └── screenshots/           # directory created; image files only when found
 ```
 
-## Planned behavior at a glance
+Fastifest preserves image aspect ratio, does not crop logos or enlarge screenshots, and omits the manifest `screenshots` member when no screenshots are found. Output filenames are reserved inside the configured output directories; keep those directories dedicated to Fastifest.
 
-- Logo inputs: PNG, JPG, JPEG, or SVG. Screenshot inputs: PNG, JPG, or JPEG.
-- File discovery is non-recursive and case-insensitive; input filenames are not required in the config. Optional screenshot annotations may refer to a source basename.
-- Exactly one readable supported logo is required; corrupt supported files and extension/content mismatches fail validation. Screenshots are optional.
-- The logo is fitted without cropping or stretching. Screenshots preserve aspect ratio and are not enlarged; with no screenshots, the manifest omits that member.
-- Generated manifest URLs are web paths (not local absolute paths) and point to generated files.
-- A pre-existing template is never replaced automatically. Generated filenames are reserved inside dedicated output folders; see the [configuration guide](docs/user/configuration.md) for overwrite behavior.
-
-## User documentation
-
-These guides describe the planned public interface and will be verified against the working package before release:
+## Documentation
 
 - [Getting started](docs/user/getting-started.md)
 - [Configuration reference](docs/user/configuration.md)
-- [CLI and API reference](docs/user/cli-and-api.md)
+- [CLI and API](docs/user/cli-and-api.md)
 - [Web App Manifest and PWA basics](docs/user/manifest-and-pwa.md)
 - [Troubleshooting and safety](docs/user/troubleshooting.md)
 
-## Status
+## Release status
 
-This pre-release development snapshot contains configuration, discovery, and internal logo/screenshot processing foundations, but it does not yet integrate them into an end-to-end asset generator, write manifests, or provide a runnable CLI/API. Fastifest is not published. Do not use the planned commands or examples as evidence of a working generator or released package.
+Fastifest has not been published. The packed package has been smoke-tested locally, and focused Windows CI covers selected suites on Node 20 and 22; this is not a complete runtime or operating-system support declaration. See the documentation for current behavior and limitations. Do not assume a registry installation or general compatibility matrix until a release is available.
