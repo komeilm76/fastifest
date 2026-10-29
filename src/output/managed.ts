@@ -45,6 +45,8 @@ export interface ManagedOutputPlan {
   iconWrites: PlannedManagedAsset[];
   screenshotWrites: PlannedManagedAsset[];
   staleScreenshotPaths: string[];
+  /** Filesystem snapshots captured during preflight; changed files are never cleaned up. */
+  staleScreenshotSnapshots: ReadonlyMap<string, Stats>;
 }
 
 interface OutputDirectorySnapshot {
@@ -84,6 +86,15 @@ function pathsOverlap(first: string, second: string): boolean {
 
 function sameFile(first: Stats, second: Stats): boolean {
   return first.dev === second.dev && first.ino === second.ino;
+}
+
+function unchangedFile(first: Stats, second: Stats): boolean {
+  return (
+    sameFile(first, second) &&
+    first.size === second.size &&
+    first.mtimeMs === second.mtimeMs &&
+    first.ctimeMs === second.ctimeMs
+  );
 }
 
 async function rejectSymlinkComponents(
@@ -284,7 +295,7 @@ async function inspectReservedTarget(
   filename: string,
   entries: readonly Dirent[],
   label: string,
-): Promise<boolean> {
+): Promise<Stats | undefined> {
   const targetPath = join(directory, filename);
   await rejectSymlinkComponents(targetPath, `${label} output`);
   const exactEntry = entries.find((entry) => entry.name === filename);
@@ -292,7 +303,7 @@ async function inspectReservedTarget(
   try {
     info = await lstat(targetPath);
   } catch (error) {
-    if (errorCode(error) === "ENOENT") return false;
+    if (errorCode(error) === "ENOENT") return undefined;
     throw new FastifestError(
       "IO_FAILED",
       `Could not inspect reserved ${label} output: ${targetPath}`,
@@ -318,7 +329,7 @@ async function inspectReservedTarget(
       `Reserved ${label} output is not a regular file: ${targetPath}`,
     );
   }
-  return true;
+  return info;
 }
 
 /** Inspect reserved outputs without modifying files; call before any asset or manifest write. */
@@ -374,6 +385,7 @@ export async function preflightManagedOutputs(
     assets.screenshots.map((image) => image.filename),
   );
   const staleScreenshotPaths: string[] = [];
+  const staleScreenshotSnapshots = new Map<string, Stats>();
   for (const entry of screenshotDirectory.entries) {
     if (
       !SCREENSHOT_NAME.test(entry.name) ||
@@ -382,14 +394,17 @@ export async function preflightManagedOutputs(
     ) {
       continue;
     }
-    const exists = await inspectReservedTarget(
+    const info = await inspectReservedTarget(
       screenshotsDirectory,
       entry.name,
       screenshotDirectory.entries,
       "stale screenshot",
     );
-    if (exists)
-      staleScreenshotPaths.push(join(screenshotsDirectory, entry.name));
+    if (info) {
+      const path = join(screenshotsDirectory, entry.name);
+      staleScreenshotPaths.push(path);
+      staleScreenshotSnapshots.set(path, info);
+    }
   }
   staleScreenshotPaths.sort((first, second) =>
     compareSourceBasenames(basename(first), basename(second)),
@@ -413,6 +428,7 @@ export async function preflightManagedOutputs(
     iconWrites,
     screenshotWrites,
     staleScreenshotPaths,
+    staleScreenshotSnapshots,
   };
 }
 
@@ -443,6 +459,14 @@ export async function removeStaleScreenshotsAfterManifestCommit(
       continue;
     }
 
+    const snapshot = plan.staleScreenshotSnapshots.get(stalePath);
+    if (!snapshot) {
+      warn(
+        `Refused to remove a stale screenshot without a preflight snapshot: ${stalePath}`,
+      );
+      continue;
+    }
+
     try {
       await rejectSymlinkComponents(stalePath, "stale screenshot output");
       const before = await lstat(stalePath);
@@ -450,12 +474,18 @@ export async function removeStaleScreenshotsAfterManifestCommit(
         warn(`Left stale screenshot that is not a regular file: ${stalePath}`);
         continue;
       }
+      if (!unchangedFile(snapshot, before)) {
+        warn(
+          `Left stale screenshot that changed after preflight: ${stalePath}`,
+        );
+        continue;
+      }
       await rejectSymlinkComponents(stalePath, "stale screenshot output");
       const current = await lstat(stalePath);
       if (
         current.isSymbolicLink() ||
         !current.isFile() ||
-        !sameFile(before, current)
+        !unchangedFile(snapshot, current)
       ) {
         warn(`Left stale screenshot that changed during cleanup: ${stalePath}`);
         continue;

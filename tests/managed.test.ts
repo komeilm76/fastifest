@@ -305,6 +305,24 @@ describe("removeStaleScreenshotsAfterManifestCommit", () => {
     await expect(readFile(unreserved, "utf8")).resolves.toBe("keep too");
   });
 
+  it("preserves a planned stale screenshot changed after preflight", async () => {
+    await mkdir(config.screenshotsOutputPath, { recursive: true });
+    const stale = join(config.screenshotsOutputPath, "screenshot-13.png");
+    await writeFile(stale, "stale");
+    const plan = await preflightManagedOutputs(config, makeIcons(), []);
+
+    await writeFile(stale, "concurrent unowned screenshot content");
+    const warnings = await removeStaleScreenshotsAfterManifestCommit(
+      plan,
+      silentLogger,
+    );
+
+    expect(warnings).toHaveLength(1);
+    await expect(readFile(stale, "utf8")).resolves.toBe(
+      "concurrent unowned screenshot content",
+    );
+  });
+
   it("leaves a planned stale path alone if it becomes a directory", async () => {
     await mkdir(config.screenshotsOutputPath, { recursive: true });
     await writeFile(
