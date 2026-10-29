@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const expectedNodeVersion = process.env.FASTIFEST_EXPECTED_NODE ?? "20.9.0";
+const expectedNodeVersion = process.env.FASTIFEST_EXPECTED_NODE ?? "20.10.0";
 assert.equal(
   process.versions.node,
   expectedNodeVersion,
