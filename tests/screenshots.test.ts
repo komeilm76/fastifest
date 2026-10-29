@@ -120,6 +120,46 @@ describe("generateScreenshots", () => {
     expect(metadata.exif).toBeUndefined();
   });
 
+  it("converts CMYK screenshot pixels to sRGB values", async () => {
+    const source = await sharp({
+      create: {
+        width: 64,
+        height: 48,
+        channels: 3,
+        background: { r: 30, g: 130, b: 210 },
+      },
+    })
+      .toColourspace("cmyk")
+      .jpeg({ quality: 100 })
+      .toBuffer();
+    await addScreenshot("cmyk.jpg", source);
+    const inputs = await discoverScreenshots();
+    const screenshot = (await generateScreenshots(inputs))[0]!;
+    const expected = await sharp(source)
+      .toColourspace("srgb")
+      .ensureAlpha()
+      .raw()
+      .toBuffer();
+    const { data, info } = await sharp(screenshot.buffer)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const outputOffset =
+      (Math.floor(info.height / 2) * info.width + Math.floor(info.width / 2)) *
+      info.channels;
+
+    expect((await sharp(screenshot.buffer).metadata()).space).toBe("srgb");
+    for (let channel = 0; channel < 3; channel += 1) {
+      expect(
+        Math.abs(
+          data[outputOffset + channel]! -
+            expected[24 * 64 * 4 + 32 * 4 + channel]!,
+        ),
+      ).toBeLessThanOrEqual(5);
+    }
+    expect(data[outputOffset + 3]).toBe(255);
+  });
+
   it("preserves screenshot alpha and carries only explicitly authored annotations", async () => {
     const width = 20;
     const height = 16;

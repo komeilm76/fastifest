@@ -193,6 +193,49 @@ describe("generateLogoIcons", () => {
     expect(outputMetadata.exif).toBeUndefined();
   });
 
+  it("converts CMYK raster logo pixels to sRGB values", async () => {
+    const source = await sharp({
+      create: {
+        width: 64,
+        height: 64,
+        channels: 3,
+        background: { r: 200, g: 50, b: 20 },
+      },
+    })
+      .toColourspace("cmyk")
+      .jpeg({ quality: 100 })
+      .toBuffer();
+    await addLogo(source, "cmyk.jpg");
+    const discovered = await discoverInputs(config, { logger: silentLogger });
+    const generated = await generateLogoIcons(discovered.logo, {
+      logger: silentLogger,
+    });
+    const expected = await sharp(source)
+      .toColourspace("srgb")
+      .ensureAlpha()
+      .raw()
+      .toBuffer();
+    const icon = generated.icons[0]!;
+    const { data, info } = await sharp(icon.buffer)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const outputOffset =
+      (Math.floor(info.height / 2) * info.width + Math.floor(info.width / 2)) *
+      info.channels;
+
+    expect((await sharp(icon.buffer).metadata()).space).toBe("srgb");
+    for (let channel = 0; channel < 3; channel += 1) {
+      expect(
+        Math.abs(
+          data[outputOffset + channel]! -
+            expected[32 * 64 * 4 + 32 * 4 + channel]!,
+        ),
+      ).toBeLessThanOrEqual(5);
+    }
+    expect(data[outputOffset + 3]).toBe(255);
+  });
+
   it("preserves transparent source artwork and transparent padding", async () => {
     const size = 32;
     const raw = Buffer.alloc(size * size * 4);

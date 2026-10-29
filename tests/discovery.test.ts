@@ -260,6 +260,26 @@ describe("discoverInputs", () => {
     });
   });
 
+  it("accepts a valid raster image exactly at the maximum side limit", async () => {
+    const edgeImage = await sharp({
+      create: {
+        width: MAX_RASTER_SIDE,
+        height: 1,
+        channels: 3,
+        background: "#336699",
+      },
+    })
+      .png()
+      .toBuffer();
+    await addLogo("edge.png", edgeImage);
+
+    await expect(
+      discoverInputs(config, { logger: silentLogger }),
+    ).resolves.toMatchObject({
+      logo: { width: MAX_RASTER_SIDE, height: 1 },
+    });
+  });
+
   it("rejects raster images exceeding decoded side or pixel limits", async () => {
     await addLogo("wide.png", await pngWithDimensions(MAX_RASTER_SIDE + 1, 1));
     await expect(discoverInputs(config)).rejects.toMatchObject({
