@@ -1,6 +1,6 @@
 # Delivery plan and phase gates
 
-This is a staged implementation plan, not authorization to skip gates. Phase 0 has been approved, Phase 1 is complete, and Phase 2 is underway. Approval applies to proceeding incrementally; it does not authorize publishing or claiming later-phase behavior.
+This is a staged implementation plan, not authorization to skip gates. Phase 0 has been approved; Phases 1, 2, and 3 are complete; Phase 4 is underway. Approval applies to proceeding incrementally; it does not authorize publishing or claiming later-phase behavior.
 
 ## Phase 0 — specification, design, user documentation (approved)
 
@@ -55,11 +55,13 @@ Gate: every generated manifest reference resolves to a contained installed regul
 
 ## Phase 4 — user documentation and CI
 
-Keep consumer docs in root `README.md` and `docs/user/**`; keep contributor/release/phase docs in `docs/developer/**` and maintainer files such as `CONTRIBUTING.md`. Verify every user command and example against a local package run. Add public API JSDoc, a working example, changelog, contribution and security guidance, license, issue templates as appropriate, and GitHub Actions. CI should install pinned Bun, use the committed lockfile, format-check, typecheck, test, build, and inspect package contents. Test supported runtime/OS combinations; do not advertise untested combinations.
+Keep consumer docs in root `README.md` and `docs/user/**`; keep contributor/release/phase docs in `docs/developer/**` and maintainer files such as `CONTRIBUTING.md`. Verify every user command and example against a local package run. The public API JSDoc and verified runnable example are complete; remaining maintainer-facing deliverables include a changelog, contribution/security guidance, and any appropriate issue templates. CI should install pinned Bun, use the committed lockfile, format-check, typecheck, test, build, verify the runnable example, and inspect package contents. Test supported runtime/OS combinations; do not advertise untested combinations.
 
 When package metadata is added, allowlist only runtime output and intended user-facing package files (including root `README.md` and `docs/user/**`); exclude `docs/developer/**` and internal prompts. Verify the actual tarball file list with `npm pack --dry-run`.
 
 CI and package-audit checkpoint (2026-10-29): Pinned hosted runner labels to `ubuntu-26.04`, `windows-2025`, and `macos-26` rather than rolling `-latest` labels; Bun remains tested on Ubuntu only. Added `npm run package:check`, which parses `npm pack --dry-run --json`, enforces the `package.json`/`README.md`/`LICENSE`/`dist/**`/`docs/user/**` allowlist, and requires essential runtime and consumer-guide files. The local package dry run contained 76 files and excluded developer planning, source, tests, and scripts. The Node candidate workflow runs the package audit on each pinned OS, and the Bun workflow runs it on Ubuntu. Local Node 22.22.3 and Bun 1.4.4 full checks passed with 129 tests passed and two Windows-only skips. Hosted run `40835659842` passed Node 20/22/24 full checks on all three pinned OS labels, the package audit on each OS, the Node 20.10.0 packed-install smoke on all three, and Bun 1.4.4 plus package audit on Ubuntu. The pinned Windows path/reparse-point suites passed on Node 20 and 22 in `40835660230`. These verify the selected runner labels and versions, not all OS releases or architectures; developer plans/prompts remain excluded from npm.
+
+API documentation and runnable-example checkpoint (2026-10-29): Added public API JSDoc and a consumer-facing API reference. Added `docs/user/examples/programmatic.mjs`, covering `generateProject`, first-run template stop behavior, generated results, and `FastifestError` handling. `scripts/verify-api-example.mjs` runs that exact file against the built local package in temporary consumer projects, checking first-run behavior, generated manifest/icons, and an invalid-config failure; `npm run api-example:check` builds and executes it. The pinned Node candidate workflow runs the verifier after build, and the package audit requires the example in the npm tarball. Local formatting, typecheck, build, all 129 tests (2 skipped), API-example verification, package-content audit (77 files), and `git diff --check` passed on 2026-10-29. Hosted verification of the newly wired workflow step is pending. This confirms the local Node/package-export path, not all supported OS/runtime combinations.
 
 Gate: run every check locally; inspect package contents. Verify docs and examples against an actual local package run. Do not publish or create a public release.
 
@@ -90,8 +92,8 @@ Choose and configure one reviewable versioning approach, confirm npm package ide
 
 ## Next tasks (priority order)
 
-1. **Phase 4 — document the public API.** Add public API JSDoc and clearly describe supported inputs, outputs, and errors.
-2. **Phase 4 — add a verified usage example.** Exercise it against the local package and validate every consumer-facing command.
-3. **Phase 4 — finish maintainer-facing release materials.** Add changelog, contribution/security guidance, and issue templates as appropriate.
-4. **Phase 4 — conduct the final documentation and safety review.** Check consumer examples, compatibility claims, tarball contents, workflow permissions, and internal/consumer documentation separation before closing the phase.
+1. **Phase 4 — verify hosted example CI.** Confirm the new example-verification step passes in the pinned Node/Bun workflows; investigate any platform-specific failures before treating the task as fully validated.
+2. **Phase 4 — finish maintainer-facing release materials.** Add changelog and contribution/security guidance, and issue templates where appropriate; keep these out of consumer package contents unless intentionally public.
+3. **Phase 4 — conduct the final documentation and safety review.** Check consumer commands/examples, compatibility claims, tarball contents, workflow permissions, and consumer/internal documentation separation.
+4. **Phase 4 — address review findings and close the phase gate.** Re-run all checks and record remaining limitations; do not claim support beyond tested combinations.
 5. **Phase 5 — release readiness, only when authorized.** Review package identity, versioning, publishing permissions, workflow security, and release notes; never publish without explicit owner authorization.

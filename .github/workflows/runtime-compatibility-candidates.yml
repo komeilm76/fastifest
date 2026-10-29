@@ -49,6 +49,7 @@ jobs:
           npm run typecheck
           npm test
           npm run build
+          node scripts/verify-api-example.mjs
           node dist/cli.js --help
           node dist/cli.js --version
       - name: Verify npm package contents

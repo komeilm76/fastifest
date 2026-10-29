@@ -72,6 +72,7 @@ const requiredFiles = [
   "dist/index.js",
   "dist/index.d.ts",
   "docs/user/getting-started.md",
+  "docs/user/examples/programmatic.mjs",
 ];
 const missing = requiredFiles.filter((path) => !files.includes(path));
 

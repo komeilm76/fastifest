@@ -27,24 +27,13 @@ Usage errors exit with status `2`. Configuration, validation, and generation err
 
 ## Programmatic API
 
-The package exports `generateProject`, which uses the same generation pipeline as the CLI:
+The package exports `generateProject`, which uses the same generation pipeline as the CLI. A complete runnable JavaScript example, including first-run template handling and `FastifestError` handling, is available at [`examples/programmatic.mjs`](examples/programmatic.mjs). After installing Fastifest in a consumer project, run it from that project's root:
 
-```ts
-import { generateProject } from "fastifest";
-
-const result = await generateProject({
-  cwd: process.cwd(),
-  configPath: "./fastifest.config.ts", // optional
-});
-
-if (result.status === "template-created") {
-  // Customize result.templatePath, then call again.
-  console.info(result.guidance);
-} else {
-  console.info(`Wrote ${result.manifestPath}`);
-  console.info(`Warnings: ${result.warnings.length}`);
-}
+```sh
+node ./node_modules/fastifest/docs/user/examples/programmatic.mjs
 ```
+
+The example calls `generateProject({ cwd: process.cwd() })` and checks the `status` discriminant before reading generated-result fields. It is verified against the built local package as part of the repository checks.
 
 `cwd` defaults to the current working directory. `configPath` is optional and, when relative, resolves from `cwd`. An optional `logger` can override pipeline logging.
 
