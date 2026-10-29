@@ -260,8 +260,8 @@ describe("discoverInputs", () => {
     });
   });
 
-  it("accepts a valid raster image exactly at the maximum side limit", async () => {
-    const edgeImage = await sharp({
+  it("accepts valid raster images exactly at the maximum side and pixel limits", async () => {
+    const edgeSideImage = await sharp({
       create: {
         width: MAX_RASTER_SIDE,
         height: 1,
@@ -271,12 +271,31 @@ describe("discoverInputs", () => {
     })
       .png()
       .toBuffer();
-    await addLogo("edge.png", edgeImage);
+    await addLogo("edge.png", edgeSideImage);
 
     await expect(
       discoverInputs(config, { logger: silentLogger }),
     ).resolves.toMatchObject({
       logo: { width: MAX_RASTER_SIDE, height: 1 },
+    });
+
+    await rm(config.logosPath, { recursive: true, force: true });
+    const edgePixelImage = await sharp({
+      create: {
+        width: 10_000,
+        height: 4_000,
+        channels: 3,
+        background: { r: 51, g: 102, b: 153 },
+      },
+    })
+      .png()
+      .toBuffer();
+    await addLogo("edge-pixels.png", edgePixelImage);
+
+    await expect(
+      discoverInputs(config, { logger: silentLogger }),
+    ).resolves.toMatchObject({
+      logo: { width: 10_000, height: 4_000 },
     });
   });
 
