@@ -133,16 +133,25 @@ const FALLBACK_MANIFEST_URL = new URL(
 );
 const URL_SCHEME = /^[A-Za-z][A-Za-z\d+.-]*:/;
 
-function isAbsoluteUrlReference(value: string): boolean {
+function normalizeUrlInput(value: string): string {
   // Match URL parser preprocessing: strip tabs/newlines globally and surrounding C0/space.
-  const normalized = value
+  return value
     .replace(/[\t\n\r]/g, "")
     .replace(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/g, "");
+}
+
+function isAbsoluteUrlReference(value: string): boolean {
+  const normalized = normalizeUrlInput(value);
   return (
     URL_SCHEME.test(normalized) ||
     normalized.startsWith("//") ||
     normalized.startsWith("\\\\")
   );
+}
+
+function isPathRelativeReference(value: string): boolean {
+  const normalized = normalizeUrlInput(value);
+  return !isAbsoluteUrlReference(value) && !normalized.startsWith("/");
 }
 
 function parseManifestUrl(value: string, field: string, base: URL): URL {
@@ -247,14 +256,26 @@ function validateTemplateUrlRelationships(
       "Invalid manifest template.scope: URL must resolve to the same origin as start_url.",
     );
   }
+  const pathContainmentIsUnknown =
+    scopeUrl !== undefined &&
+    startUrl !== undefined &&
+    (isPathRelativeReference(template.start_url!) ||
+      (template.scope !== undefined &&
+        isPathRelativeReference(template.scope)));
   if (
     scopeUrl &&
     startUrl &&
+    !pathContainmentIsUnknown &&
     !scopeContainsStartUrl(scopeUrl.pathname, startUrl.pathname)
   ) {
     throw new FastifestError(
       "TEMPLATE_INVALID",
       "Invalid manifest template.scope: resolved scope must contain start_url.",
+    );
+  }
+  if (pathContainmentIsUnknown) {
+    warn(
+      "Fastifest cannot fully verify scope containment for path-relative start_url or scope because the deployed manifest URL prefix is unknown. Check the relationship at your deployed manifest URL.",
     );
   }
   if (

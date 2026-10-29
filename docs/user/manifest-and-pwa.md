@@ -37,7 +37,7 @@ With the default layout, this works when `public/icons/icon-192.png` is served a
 These members are URL metadata, not filesystem paths:
 
 - `start_url` is resolved relative to the manifest URL. When supplied, Fastifest validates same-origin relationships where they can be determined. If absent, it warns that browsers may fall back to the page that linked the manifest.
-- `scope` resolves relative to the manifest URL. When `start_url` is supplied, Fastifest checks same-origin where knowable and checks that the scope path contains the start URL. Scope path boundaries are segment-aware (for example, `/app/` does not contain `/application/`).
+- `scope` resolves relative to the manifest URL. When `start_url` is supplied, Fastifest checks same-origin where knowable. It checks containment for origin-root paths; if either URL is path-relative, the deployment prefix can affect the result, so Fastifest warns and asks you to verify containment at the deployed manifest URL. Scope path boundaries are segment-aware (for example, `/app/` does not contain `/application/`).
 - `id` is optional, must be same-origin with `start_url` when that relationship can be determined, and need not be within `scope`. Fastifest does not synthesize an ID. Choose a stable identity; changing it can make a browser treat the site as a different installed app. If adding one to an existing PWA, check the browser's computed app ID first.
 - Shortcut URLs should stay within the app's scope. Generated icon and screenshot `src` URLs resolve relative to the manifest URL and must match your deployment's asset routing.
 

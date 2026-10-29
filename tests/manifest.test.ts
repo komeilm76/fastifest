@@ -148,7 +148,9 @@ describe("buildManifest", () => {
       { logger: silentLogger },
     );
     expect(result.value.start_url).toBe("../app/start?mode=install#top");
-    expect(result.warnings).toEqual([]);
+    expect(result.warnings).toContain(
+      "Fastifest cannot fully verify scope containment for path-relative start_url or scope because the deployed manifest URL prefix is unknown. Check the relationship at your deployed manifest URL.",
+    );
   });
 
   it("does not assume an absolute scope is the unknown origin of a relative start_url", async () => {
@@ -166,6 +168,25 @@ describe("buildManifest", () => {
     );
     expect(result.warnings).toContain(
       "Manifest template combines absolute URLs with a relative start_url; same-origin relationships involving relative URLs cannot be fully checked because the final site origin is unknown.",
+    );
+  });
+
+  it("warns when dot-relative scope containment depends on the deployed manifest path", async () => {
+    const config = await makeConfig();
+    const result = buildManifest(
+      config,
+      {
+        ...completeTemplate,
+        start_url: "../app/start",
+        scope: "./",
+      },
+      makeIcons(),
+      [makeScreenshot()],
+      { logger: silentLogger },
+    );
+
+    expect(result.warnings).toContain(
+      "Fastifest cannot fully verify scope containment for path-relative start_url or scope because the deployed manifest URL prefix is unknown. Check the relationship at your deployed manifest URL.",
     );
   });
 
@@ -247,6 +268,7 @@ describe("buildManifest", () => {
       { logger: silentLogger },
     );
     expect(result.warnings).toEqual([
+      "Fastifest cannot fully verify scope containment for path-relative start_url or scope because the deployed manifest URL prefix is unknown. Check the relationship at your deployed manifest URL.",
       "Manifest template contains absolute URLs; Fastifest assumes deployment on origin https://app.example.test for relationship checks because the final site origin is unknown.",
     ]);
   });
