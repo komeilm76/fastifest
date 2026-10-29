@@ -59,6 +59,8 @@ Keep consumer docs in root `README.md` and `docs/user/**`; keep contributor/rele
 
 When package metadata is added, allowlist only runtime output and intended user-facing package files (including root `README.md` and `docs/user/**`); exclude `docs/developer/**` and internal prompts. Verify the actual tarball file list with `npm pack --dry-run`.
 
+CI and package-audit checkpoint (2026-10-29): Pinned hosted runner labels to `ubuntu-26.04`, `windows-2025`, and `macos-26` rather than rolling `-latest` labels; Bun remains tested on Ubuntu only. Added `npm run package:check`, which parses `npm pack --dry-run --json`, enforces the `package.json`/`README.md`/`LICENSE`/`dist/**`/`docs/user/**` allowlist, and requires essential runtime and consumer-guide files. The local package dry run contained 76 files and excluded developer planning, source, tests, and scripts. The Node candidate workflow runs the package audit on each pinned OS, and the Bun workflow runs it on Ubuntu. Local Node 22.22.3 and Bun 1.4.4 full checks passed with 129 tests passed and two Windows-only skips. Hosted run `40835659842` passed Node 20/22/24 full checks on all three pinned OS labels, the package audit on each OS, the Node 20.10.0 packed-install smoke on all three, and Bun 1.4.4 plus package audit on Ubuntu. The pinned Windows path/reparse-point suites passed on Node 20 and 22 in `40835660230`. These verify the selected runner labels and versions, not all OS releases or architectures; developer plans/prompts remain excluded from npm.
+
 Gate: run every check locally; inspect package contents. Verify docs and examples against an actual local package run. Do not publish or create a public release.
 
 ## Phase 5 — release readiness (only when authorized)
@@ -88,8 +90,8 @@ Choose and configure one reviewable versioning approach, confirm npm package ide
 
 ## Next tasks (priority order)
 
-1. **Phase 4 — complete reproducible CI and package audit.** Pin runner images where appropriate, verify package contents with `npm pack --dry-run`, and ensure developer plans/prompts stay out of the npm tarball.
-2. **Phase 4 — document the public API.** Add JSDoc and a verified example, then validate every consumer-facing command against a local package run.
+1. **Phase 4 — document the public API.** Add public API JSDoc and clearly describe supported inputs, outputs, and errors.
+2. **Phase 4 — add a verified usage example.** Exercise it against the local package and validate every consumer-facing command.
 3. **Phase 4 — finish maintainer-facing release materials.** Add changelog, contribution/security guidance, and issue templates as appropriate.
 4. **Phase 4 — conduct the final documentation and safety review.** Check consumer examples, compatibility claims, tarball contents, workflow permissions, and internal/consumer documentation separation before closing the phase.
 5. **Phase 5 — release readiness, only when authorized.** Review package identity, versioning, publishing permissions, workflow security, and release notes; never publish without explicit owner authorization.
