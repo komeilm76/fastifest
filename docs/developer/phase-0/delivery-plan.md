@@ -79,6 +79,8 @@ Manifest scope-prefix validation fix (2026-10-29): A targeted deployment-path au
 
 Maintainer materials checkpoint (2026-10-29): Added repository-only `CONTRIBUTING.md`, `SECURITY.md`, and an Unreleased `CHANGELOG.md`, plus public bug-report and feature-request forms under `.github/ISSUE_TEMPLATE/`. Updated the developer documentation index. Root policies and issue forms remain outside the npm `files` allowlist; `npm run package:check` confirms the tarball remains limited to 77 runtime and consumer-guide files. The issue-form YAML parsed successfully. Local formatting, typecheck, build, all 136 tests (2 skipped), API-example verification, package-content audit, and diff checks passed. Hosted runtime runs `40882813108` and `40882997353` passed full Node 20/22/24 checks on Ubuntu, Windows, and macOS, Node 20.10.0 packed-install tests on all three OSes, and Bun 1.4.4 on Ubuntu. Windows path-safety runs `40882813207` and `40882997356` passed on Node 20 and 22.
 
+Final documentation and safety review checkpoint (2026-10-29): Compared the README and consumer guides against current behavior and verified relative Markdown links. Clarified in Getting Started that Fastifest defers scope containment checks for path-relative URLs when the deployed manifest URL prefix is unknown. Reviewed the package allowlist and CI workflows: maintainer materials remain excluded, workflow permissions are read-only, and actions are pinned to immutable SHAs. Local formatting, typecheck, build, all 136 tests (2 skipped), API-example verification, 77-file package audit, link check, and diff checks passed. Hosted verification is pending.
+
 Gate: run every check locally; inspect package contents. Verify docs and examples against an actual local package run. Do not publish or create a public release.
 
 ## Phase 5 — release readiness (only when authorized)
@@ -108,8 +110,8 @@ Choose and configure one reviewable versioning approach, confirm npm package ide
 
 ## Next tasks (priority order)
 
-1. **Phase 4 — conduct the final documentation and safety review.** Check consumer examples, compatibility claims, tarball contents, workflow permissions, repository-only maintainer materials, and internal/consumer documentation separation.
-2. **Phase 4 — continue the targeted bug audit.** Review remaining transaction, filesystem, input-validation, and public API paths; fix only defects supported by a reproducer and add regression tests.
-3. **Phase 4 — address review findings and close the phase gate.** Re-run all checks and record remaining limitations; do not claim support beyond tested combinations.
-4. **Phase 4 — confirm maintainer-process readiness.** Verify contribution/security guidance and issue forms match repository settings; keep them out of consumer package contents.
-5. **Phase 5 — release readiness and publication, only when authorized.** Review package identity, versioning, publishing permissions, workflow security, and release notes; never publish without explicit owner authorization.
+1. **Phase 4 — continue the targeted bug audit.** Review remaining transaction, filesystem, input-validation, and public API paths; fix only defects supported by a reproducer and add regression tests.
+2. **Phase 4 — address confirmed findings and close the phase gate.** Re-run all checks and record remaining limitations; do not claim support beyond tested combinations.
+3. **Phase 4 — confirm maintainer-process readiness.** Verify contribution/security guidance and issue forms match repository settings; keep them out of consumer package contents.
+4. **Phase 4 — final release-safety review.** Reconfirm package identity, user documentation, tarball contents, workflow permissions, and tested runtime claims before any release decision.
+5. **Phase 5 — release readiness and publication, only when authorized.** Review versioning, publishing permissions, workflow security, and release notes; never publish without explicit owner authorization.

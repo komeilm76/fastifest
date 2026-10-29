@@ -80,7 +80,7 @@ export default {
 } satisfies ManifestTemplate;
 ```
 
-Provide at least one of `name` or `short_name`. `start_url` and `scope` should match your deployment; when both are supplied, the scope path must contain the start URL. Fastifest generates `icons` and `screenshots`; do not include those properties in the template. Config and template files execute as TypeScript, so only load files you trust.
+Provide at least one of `name` or `short_name`. `start_url` and `scope` should match your deployment; when both are supplied, the scope must contain the start URL. Fastifest checks containment for origin-root paths, but warns and defers the check when either URL is path-relative because the deployed manifest URL prefix is unknown. Verify that relationship at your deployed manifest URL; see [Web App Manifest and PWA basics](manifest-and-pwa.md#understand-url-resolution). Fastifest generates `icons` and `screenshots`; do not include those properties in the template. Config and template files execute as TypeScript, so only load files you trust.
 
 ## 5. Generate and review
 
