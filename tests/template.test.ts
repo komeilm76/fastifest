@@ -64,6 +64,19 @@ describe("validateTemplate", () => {
     expect(() => validateTemplate(template)).toThrowError(message);
   });
 
+  it("rejects accessor properties instead of serializing changing template values", () => {
+    const template = {
+      get name() {
+        return "Example";
+      },
+      short_name: "App",
+    };
+
+    expect(() => validateTemplate(template)).toThrowError(
+      "accessor properties are not JSON-compatible",
+    );
+  });
+
   it("rejects circular extension values", () => {
     const circular: Record<string, unknown> = { name: "Example" };
     circular.self = circular;

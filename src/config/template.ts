@@ -56,6 +56,12 @@ function assertJsonValue(
     invalid(field, "expected a JSON-compatible value.");
   if (visited.has(value)) invalid(field, "circular values are not supported.");
   visited.add(value);
+  for (const key of Reflect.ownKeys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (descriptor && ("get" in descriptor || "set" in descriptor)) {
+      invalid(field, "accessor properties are not JSON-compatible.");
+    }
+  }
 
   if (Array.isArray(value)) {
     for (let index = 0; index < value.length; index += 1) {
@@ -104,6 +110,7 @@ function requireObjectArray(
  */
 export function validateTemplate(value: unknown): ManifestTemplate {
   if (!isRecord(value)) invalid("", "expected a default-exported object.");
+  assertJsonValue(value, "", new WeakSet<object>());
   if (Object.hasOwn(value, "icons"))
     invalid(
       "icons",
@@ -156,7 +163,6 @@ export function validateTemplate(value: unknown): ManifestTemplate {
     if (value[field] !== undefined) requireObjectArray(value[field], field);
   }
 
-  assertJsonValue(value, "", new WeakSet<object>());
   return value as ManifestTemplate;
 }
 
