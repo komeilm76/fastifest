@@ -155,6 +155,36 @@ function isSafeEmbeddedReference(value: string): boolean {
   );
 }
 
+/** Decode CSS escapes so obfuscated url() and @import tokens cannot bypass checks. */
+function normalizeCssForReferenceScan(source: string): string {
+  const xmlDecoded = source.replace(
+    /&#(?:x([\da-f]+)|(\d+));/gi,
+    (_match, hex: string | undefined, decimal: string | undefined) => {
+      const codePoint = Number.parseInt(hex ?? decimal ?? "", hex ? 16 : 10);
+      return !Number.isFinite(codePoint) ||
+        codePoint === 0 ||
+        codePoint > 0x10ffff
+        ? "\uFFFD"
+        : String.fromCodePoint(codePoint);
+    },
+  );
+
+  return xmlDecoded
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(
+      /\\(?:\r\n|[\n\r\f])|\\([\da-f]{1,6})(?:\r\n|[\t\n\r\f ])?|\\([^\r\n\f])/gi,
+      (_match, hex: string | undefined, escaped: string | undefined) => {
+        if (hex !== undefined) {
+          const codePoint = Number.parseInt(hex, 16);
+          return codePoint === 0 || codePoint > 0x10ffff
+            ? "\uFFFD"
+            : String.fromCodePoint(codePoint);
+        }
+        return escaped ?? "";
+      },
+    );
+}
+
 function validateSvgReferences(sourcePath: string, bytes: Buffer): void {
   const source = bytes.toString("utf8");
   if (!Buffer.from(source, "utf8").equals(bytes)) {
@@ -164,10 +194,11 @@ function validateSvgReferences(sourcePath: string, bytes: Buffer): void {
     );
   }
 
+  const cssSource = normalizeCssForReferenceScan(source);
   if (
     /<!\s*(?:doctype|entity)\b/i.test(source) ||
     /<\?xml-stylesheet\b/i.test(source) ||
-    /@import\b/i.test(source)
+    /@import\b/i.test(cssSource)
   ) {
     throw new FastifestError(
       "IMAGE_INVALID",
@@ -186,7 +217,7 @@ function validateSvgReferences(sourcePath: string, bytes: Buffer): void {
   }
 
   const cssReferences = /url\(\s*(?:'([^']*)'|"([^"]*)"|([^)]*))\s*\)/gi;
-  for (const match of source.matchAll(cssReferences)) {
+  for (const match of cssSource.matchAll(cssReferences)) {
     const reference = match[1] ?? match[2] ?? match[3] ?? "";
     if (!isSafeEmbeddedReference(reference)) {
       throw new FastifestError(

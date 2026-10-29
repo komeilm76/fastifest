@@ -294,6 +294,51 @@ describe("discoverInputs", () => {
     );
   });
 
+  it("rejects CSS-escaped and comment-obfuscated SVG external references", async () => {
+    const unsafeSources = [
+      {
+        source: String.raw`<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><style>.x{fill:u\72l(https://example.invalid/a.svg#paint)}</style><rect class="x" width="4" height="3"/></svg>`,
+        error: "external CSS resource reference",
+      },
+      {
+        source:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><style>.x{fill:u/**/rl(https://example.invalid/a.svg#paint)}</style><rect class="x" width="4" height="3"/></svg>',
+        error: "external CSS resource reference",
+      },
+      {
+        source: String.raw`<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><style>@\69mport url(https://example.invalid/a.css);</style><rect width="4" height="3"/></svg>`,
+        error: "prohibited external-resource",
+      },
+      {
+        source:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><style>u&#x72;l(https://example.invalid/a.svg#paint)</style><rect width="4" height="3"/></svg>',
+        error: "external CSS resource reference",
+      },
+      {
+        source: String.raw`<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><style>u\
+rl(https://example.invalid/a.svg#paint)</style><rect width="4" height="3"/></svg>`,
+        error: "external CSS resource reference",
+      },
+    ];
+
+    for (const { source, error } of unsafeSources) {
+      await rm(config.logosPath, { recursive: true, force: true });
+      await addLogo("brand.svg", Buffer.from(source));
+      await expect(discoverInputs(config)).rejects.toThrowError(error);
+    }
+
+    await rm(config.logosPath, { recursive: true, force: true });
+    await addLogo(
+      "brand.svg",
+      Buffer.from(
+        String.raw`<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><defs><linearGradient id="paint"><stop stop-color="#336699"/></linearGradient></defs><style>.x{fill:u\72l(#paint)}</style><rect class="x" width="4" height="3"/></svg>`,
+      ),
+    );
+    await expect(discoverInputs(config)).resolves.toMatchObject({
+      logo: { format: "svg" },
+    });
+  });
+
   it("attaches exact-basename screenshot annotations and rejects unmatched keys", async () => {
     await addLogo();
     await addScreenshot("home.png", await makePng());
