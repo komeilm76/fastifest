@@ -32,6 +32,19 @@ describe("validateConfig", () => {
     expect(validateConfig({})).not.toBe(validateConfig({}));
   });
 
+  it("rejects accessor properties before evaluating config values", () => {
+    let reads = 0;
+    const metadata = Object.defineProperty({}, "label", {
+      enumerable: true,
+      get: () => (reads++ < 3 ? "Home" : ""),
+    });
+
+    expect(() =>
+      validateConfig({ screenshots: { metadata: { "home.png": metadata } } }),
+    ).toThrowError("accessor properties are not supported");
+    expect(reads).toBe(0);
+  });
+
   it("rejects unknown keys with a field-specific error", () => {
     expect(() =>
       validateConfig({ logging: { verbosity: "quiet" } }),

@@ -2,7 +2,7 @@
 
 > **Pre-release:** Fastifest is not published to npm yet. This reference describes the current source package. Package metadata declares Node.js `>=20.10.0`; that engine floor does not guarantee support for every runtime, operating system, or architecture.
 
-Fastifest optionally loads a TypeScript default export from `fastifest.config.ts` in the project root. Run the CLI from the consuming project root; most relative paths resolve from that directory, except manifest/output paths, which resolve from `paths.public`. Config and template files execute code. Only load files you trust.
+Fastifest optionally loads a TypeScript default export from `fastifest.config.ts` in the project root. Run the CLI from the consuming project root; most relative paths resolve from that directory, except manifest/output paths, which resolve from `paths.public`. Config and template files execute code. Only load files you trust. Config values must use plain data properties; getter/setter properties are rejected so validation cannot read a changing value more than once.
 
 ## Example
 

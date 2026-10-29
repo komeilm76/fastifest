@@ -30,6 +30,12 @@ function asRecord(value: unknown, path: string): UnknownRecord {
   if (prototype !== Object.prototype && prototype !== null) {
     return invalid(path, "expected a plain object.");
   }
+  for (const key of Reflect.ownKeys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (descriptor && ("get" in descriptor || "set" in descriptor)) {
+      return invalid(path, "accessor properties are not supported.");
+    }
+  }
   return value as UnknownRecord;
 }
 
