@@ -155,9 +155,8 @@ function isSafeEmbeddedReference(value: string): boolean {
   );
 }
 
-/** Decode CSS escapes so obfuscated url() and @import tokens cannot bypass checks. */
-function normalizeCssForReferenceScan(source: string): string {
-  const xmlDecoded = source.replace(
+function decodeNumericCharacterReferences(value: string): string {
+  return value.replace(
     /&#(?:x([\da-f]+)|(\d+));/gi,
     (_match, hex: string | undefined, decimal: string | undefined) => {
       const codePoint = Number.parseInt(hex ?? decimal ?? "", hex ? 16 : 10);
@@ -168,8 +167,11 @@ function normalizeCssForReferenceScan(source: string): string {
         : String.fromCodePoint(codePoint);
     },
   );
+}
 
-  return xmlDecoded
+/** Decode CSS escapes so obfuscated url() and @import tokens cannot bypass checks. */
+function normalizeCssForReferenceScan(source: string): string {
+  return decodeNumericCharacterReferences(source)
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(
       /\\(?:\r\n|[\n\r\f])|\\([\da-f]{1,6})(?:\r\n|[\t\n\r\f ])?|\\([^\r\n\f])/gi,
@@ -185,7 +187,124 @@ function normalizeCssForReferenceScan(source: string): string {
     );
 }
 
-function validateSvgReferences(sourcePath: string, bytes: Buffer): void {
+const EMBEDDED_IMAGE_MIME_FORMAT = {
+  png: "png",
+  jpeg: "jpeg",
+  gif: "gif",
+  webp: "webp",
+} as const;
+
+async function validateEmbeddedImageReference(
+  sourcePath: string,
+  reference: string,
+  alreadyValidated: Set<string>,
+): Promise<void> {
+  const normalized = decodeNumericCharacterReferences(reference).trim();
+  if (!/^data:image\//i.test(normalized) || alreadyValidated.has(normalized)) {
+    return;
+  }
+
+  const match = /^data:image\/(png|jpeg|gif|webp);base64,([\s\S]*)$/i.exec(
+    normalized,
+  );
+  if (!match) {
+    throw new FastifestError(
+      "IMAGE_INVALID",
+      `SVG input contains malformed embedded image data: ${sourcePath}`,
+    );
+  }
+
+  const mimeSubtype =
+    match[1]!.toLowerCase() as keyof typeof EMBEDDED_IMAGE_MIME_FORMAT;
+  const base64 = match[2]!.replace(/\s/g, "");
+  if (
+    base64.length === 0 ||
+    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
+      base64,
+    )
+  ) {
+    throw new FastifestError(
+      "IMAGE_INVALID",
+      `SVG input contains malformed embedded image data: ${sourcePath}`,
+    );
+  }
+
+  const embeddedBytes = Buffer.from(base64, "base64");
+  if (embeddedBytes.byteLength > MAX_RASTER_FILE_BYTES) {
+    throw new FastifestError(
+      "INPUT_LIMIT",
+      `Embedded raster input exceeds the ${MAX_RASTER_FILE_BYTES}-byte limit: ${sourcePath}`,
+    );
+  }
+
+  const imageOptions = {
+    failOn: "warning" as const,
+    limitInputPixels: MAX_RASTER_PIXELS,
+  };
+  let metadata: Metadata;
+  try {
+    metadata = await sharp(embeddedBytes, { failOn: "warning" }).metadata();
+  } catch (error) {
+    throw new FastifestError(
+      "IMAGE_INVALID",
+      `Could not decode embedded raster image in SVG: ${sourcePath}`,
+      error,
+    );
+  }
+
+  if (metadata.format !== EMBEDDED_IMAGE_MIME_FORMAT[mimeSubtype]) {
+    throw new FastifestError(
+      "IMAGE_INVALID",
+      `Embedded image MIME type does not match its data: ${sourcePath}`,
+    );
+  }
+
+  const { width, height } = metadata;
+  if (
+    width === undefined ||
+    height === undefined ||
+    !Number.isSafeInteger(width) ||
+    !Number.isSafeInteger(height) ||
+    width < 1 ||
+    height < 1
+  ) {
+    throw new FastifestError(
+      "IMAGE_INVALID",
+      `Embedded raster image has invalid dimensions: ${sourcePath}`,
+    );
+  }
+  if (width > MAX_RASTER_SIDE || height > MAX_RASTER_SIDE) {
+    throw new FastifestError(
+      "INPUT_LIMIT",
+      `Embedded raster image exceeds the ${MAX_RASTER_SIDE}-pixel maximum side (${width}x${height}): ${sourcePath}`,
+    );
+  }
+  if (width * height > MAX_RASTER_PIXELS) {
+    throw new FastifestError(
+      "INPUT_LIMIT",
+      `Embedded raster image exceeds the ${MAX_RASTER_PIXELS}-pixel limit (${width}x${height}): ${sourcePath}`,
+    );
+  }
+
+  try {
+    await sharp(embeddedBytes, imageOptions)
+      .resize({ width: 1, height: 1, fit: "fill" })
+      .raw()
+      .toBuffer();
+  } catch (error) {
+    throw new FastifestError(
+      "IMAGE_INVALID",
+      `Could not fully decode embedded raster image in SVG: ${sourcePath}`,
+      error,
+    );
+  }
+  alreadyValidated.add(normalized);
+}
+
+async function validateSvgReferences(
+  sourcePath: string,
+  bytes: Buffer,
+): Promise<void> {
   const source = bytes.toString("utf8");
   if (!Buffer.from(source, "utf8").equals(bytes)) {
     throw new FastifestError(
@@ -206,14 +325,21 @@ function validateSvgReferences(sourcePath: string, bytes: Buffer): void {
     );
   }
 
+  const alreadyValidated = new Set<string>();
   const attributeReferences = /\b(?:href|src)\s*=\s*(["'])([\s\S]*?)\1/gi;
   for (const match of source.matchAll(attributeReferences)) {
-    if (!isSafeEmbeddedReference(match[2] ?? "")) {
+    const reference = match[2] ?? "";
+    if (!isSafeEmbeddedReference(reference)) {
       throw new FastifestError(
         "IMAGE_INVALID",
         `SVG input contains an external resource reference: ${sourcePath}`,
       );
     }
+    await validateEmbeddedImageReference(
+      sourcePath,
+      reference,
+      alreadyValidated,
+    );
   }
 
   const cssReferences = /url\(\s*(?:'([^']*)'|"([^"]*)"|([^)]*))\s*\)/gi;
@@ -225,6 +351,11 @@ function validateSvgReferences(sourcePath: string, bytes: Buffer): void {
         `SVG input contains an external CSS resource reference: ${sourcePath}`,
       );
     }
+    await validateEmbeddedImageReference(
+      sourcePath,
+      reference,
+      alreadyValidated,
+    );
   }
 }
 
@@ -380,7 +511,7 @@ export async function readDiscoveredImage(
     );
   }
   if (image.format === "svg") {
-    validateSvgReferences(image.sourcePath, bytes);
+    await validateSvgReferences(image.sourcePath, bytes);
   }
 
   let metadata: Metadata;
@@ -533,7 +664,7 @@ async function inspectCandidate(
       : MAX_RASTER_FILE_BYTES;
   const bytes = await readBoundedFile(candidate.sourcePath, maximumBytes);
   if (candidate.expectedFormat === "svg") {
-    validateSvgReferences(candidate.sourcePath, bytes);
+    await validateSvgReferences(candidate.sourcePath, bytes);
   }
 
   let metadata: Metadata;

@@ -333,6 +333,52 @@ describe("discoverInputs", () => {
     );
   });
 
+  it("enforces raster limits on base64 images embedded in SVG", async () => {
+    const validEmbeddedImage = await makePng();
+    await addLogo(
+      "brand.svg",
+      Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><image href="data:image/png;base64,${validEmbeddedImage.toString("base64")}" width="4" height="3"/></svg>`,
+      ),
+    );
+    await expect(
+      discoverInputs(config, { logger: silentLogger }),
+    ).resolves.toMatchObject({ logo: { format: "svg" } });
+
+    await rm(config.logosPath, { recursive: true, force: true });
+    const tooWide = await pngWithDimensions(MAX_RASTER_SIDE + 1, 1);
+    await addLogo(
+      "brand.svg",
+      Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><image href="data:image/png;base64,${tooWide.toString("base64")}" width="4" height="3"/></svg>`,
+      ),
+    );
+    await expect(
+      discoverInputs(config, { logger: silentLogger }),
+    ).rejects.toMatchObject({
+      code: "INPUT_LIMIT",
+      message: expect.stringContaining("maximum side"),
+    });
+
+    await rm(config.logosPath, { recursive: true, force: true });
+    const tooManyPixels = await pngWithDimensions(
+      7_000,
+      Math.floor(MAX_RASTER_PIXELS / 7_000) + 1,
+    );
+    await addLogo(
+      "brand.svg",
+      Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><style>.x{fill:url(data:image/png;base64,${tooManyPixels.toString("base64")})}</style><rect class="x" width="4" height="3"/></svg>`,
+      ),
+    );
+    await expect(
+      discoverInputs(config, { logger: silentLogger }),
+    ).rejects.toMatchObject({
+      code: "INPUT_LIMIT",
+      message: expect.stringContaining("pixel limit"),
+    });
+  });
+
   it("rejects CSS-escaped and comment-obfuscated SVG external references", async () => {
     const unsafeSources = [
       {

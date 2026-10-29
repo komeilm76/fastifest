@@ -18,7 +18,7 @@ Screenshots are optional. A missing or empty configured screenshot directory pro
 
 Supported suffixes are not enough: Fastifest inspects image data. A corrupt supported file or a mismatch between its extension and actual format fails generation instead of being silently skipped. Check that the file opens in an image viewer, that the extension matches its format, and that the format is supported for that input type. SVG inputs are supported for logos only.
 
-The current limits include 20 MiB per raster input, 2 MiB per SVG, 40 megapixels and 12,000 pixels per side for decoded raster images, and a 4,096-pixel maximum screenshot side. Oversized screenshots are reduced proportionally, not enlarged. If a valid image exceeds an input limit, reduce it before retrying.
+The current limits include 20 MiB per raster input, 2 MiB per SVG, 40 megapixels and 12,000 pixels per side for decoded raster images, and a 4,096-pixel maximum screenshot side. These decoded-raster limits also apply to base64-embedded images in SVG inputs. Oversized screenshots are reduced proportionally, not enlarged. If a valid image exceeds an input limit, reduce it before retrying.
 
 ## Config or template errors
 
