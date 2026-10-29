@@ -30,30 +30,55 @@ const scratchRoot = await realpath(
 );
 const packageDirectory = join(scratchRoot, "package");
 const projectDirectory = join(scratchRoot, "consumer");
+let stage = "prepare temporary project";
 
 function run(command, args, options = {}) {
+  const { showOutput = false, ...processOptions } = options;
   const executable =
     process.platform === "win32" && command === "npm" ? "npm.cmd" : command;
-  return execFileSync(executable, args, {
-    cwd: repositoryRoot,
-    encoding: "utf8",
-    stdio: "pipe",
-    ...(process.platform === "win32" && command === "npm"
-      ? { shell: true }
-      : {}),
-    ...options,
-  });
+  try {
+    const output = execFileSync(executable, args, {
+      cwd: repositoryRoot,
+      encoding: "utf8",
+      stdio: "pipe",
+      ...(process.platform === "win32" && command === "npm"
+        ? { shell: true }
+        : {}),
+      ...processOptions,
+    });
+    if (showOutput && output) process.stdout.write(output);
+    return output;
+  } catch (error) {
+    const childOutput = [error.stdout, error.stderr]
+      .filter(Boolean)
+      .map((value) => value.toString())
+      .join("\n");
+    throw new Error(
+      `${command} ${args.join(" ")} failed during ${stage}.${childOutput ? `\n${childOutput}` : ""}`,
+      { cause: error },
+    );
+  }
+}
+
+function escapeWorkflowCommand(value) {
+  return value
+    .replaceAll("%", "%25")
+    .replaceAll("\r", "%0D")
+    .replaceAll("\n", "%0A");
 }
 
 try {
   await mkdir(packageDirectory, { recursive: true });
   await mkdir(projectDirectory, { recursive: true });
 
-  run("npm", ["run", "build"], { stdio: "inherit" });
+  stage = "building the package";
+  run("npm", ["run", "build"], { showOutput: true });
+  stage = "packing the built package";
   run("npm", ["pack", "--pack-destination", packageDirectory, "--silent"], {
-    stdio: "inherit",
+    showOutput: true,
   });
 
+  stage = "locating the package archive";
   const archives = (await readdir(packageDirectory)).filter((name) =>
     name.endsWith(".tgz"),
   );
@@ -64,12 +89,14 @@ try {
   );
   const packageArchive = join(packageDirectory, archives[0]);
 
+  stage = "installing the packed package and runtime dependencies";
   run(
     "npm",
     ["install", "--no-audit", "--no-fund", "--save-dev", packageArchive],
-    { cwd: projectDirectory, stdio: "inherit" },
+    { cwd: projectDirectory, showOutput: true },
   );
 
+  stage = "preparing the consumer project";
   const logosDirectory = join(projectDirectory, "assets", "logos");
   await mkdir(logosDirectory, { recursive: true });
   await writeFile(
@@ -81,19 +108,25 @@ try {
     'export default { name: "Minimum Node smoke", start_url: "/", display: "standalone" };\n',
   );
 
+  stage = "checking the installed CLI help";
   const help = run("npm", ["exec", "--", "fastifest", "--help"], {
     cwd: projectDirectory,
   });
   assert.match(help, /Usage: fastifest/);
+
+  stage = "checking the installed CLI version";
   const version = run("npm", ["exec", "--", "fastifest", "--version"], {
     cwd: projectDirectory,
   });
   assert.equal(version.trim(), repositoryPackage.version);
+
+  stage = "generating assets through the installed CLI";
   run("npm", ["exec", "--", "fastifest"], {
     cwd: projectDirectory,
-    stdio: "inherit",
+    showOutput: true,
   });
 
+  stage = "verifying generated manifest and icon files";
   const publicDirectory = join(projectDirectory, "public");
   const manifestPath = join(publicDirectory, "manifest.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
@@ -109,6 +142,17 @@ try {
   console.log(
     `Packed-install CLI generation passed on Node ${process.versions.node} (${process.platform}/${process.arch}).`,
   );
+} catch (error) {
+  const message =
+    error instanceof Error ? (error.stack ?? error.message) : String(error);
+  const detail = `Minimum-runtime smoke failed during ${stage}: ${message}`;
+  console.error(detail);
+  if (process.env.GITHUB_ACTIONS === "true") {
+    process.stderr.write(
+      `::error title=Minimum Node smoke failed::${escapeWorkflowCommand(detail)}\n`,
+    );
+  }
+  throw error;
 } finally {
   await rm(scratchRoot, { recursive: true, force: true });
 }
