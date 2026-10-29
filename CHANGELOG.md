@@ -9,6 +9,7 @@ All notable changes are tracked here. Fastifest has not yet been published; curr
 - Enforced decoded byte, side, and pixel limits for raster images embedded in SVG logos while retaining support for valid padded and unpadded Base64 data URIs.
 - Made overwrite-disabled asset installation race-safe and preserved concurrent files during transaction rollback.
 - Rejected template and configuration accessor properties so validation cannot accept one value and later serialize a different one.
+- Rejected template source paths that overlap `manifest.json` or managed output directories, preventing generation from overwriting its own template.
 - Preserved stale screenshots changed after preflight instead of deleting the updated files during post-commit cleanup.
 - Refused to overwrite generated outputs changed in place during rollback; incomplete rollback errors now identify the preserved prior-output backup.
 - Aligned absolute URL classification with URL parser whitespace handling, and deferred path-relative `scope` containment assertions when the deployed manifest URL prefix is unknown.

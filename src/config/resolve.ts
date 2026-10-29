@@ -108,7 +108,8 @@ function assertDisjoint(label: string, paths: Array<[string, string]>): void {
  *
  * Relative input/template paths resolve from the project root. Generated output
  * directories resolve from `paths.public` and must remain disjoint and contained
- * there; `manifest.json` must be directly inside the public root. Existing
+ * there; `manifest.json` must be directly inside the public root. The template
+ * source must not overlap the manifest or managed output directories. Existing
  * symlink/reparse-point components are rejected.
  *
  * @param input - Untrusted config value to validate; unknown keys are rejected.
@@ -208,6 +209,12 @@ export async function resolveConfig(
     ["manifest", manifestPath],
     ["logos", logosPath],
     ["screenshots", screenshotsPath],
+    ["iconsOutput", iconsOutputPath],
+    ["screenshotsOutput", screenshotsOutputPath],
+  ]);
+  assertDisjoint("Template/output", [
+    ["template", templatePath],
+    ["manifest", manifestPath],
     ["iconsOutput", iconsOutputPath],
     ["screenshotsOutput", screenshotsOutputPath],
   ]);

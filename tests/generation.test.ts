@@ -82,6 +82,26 @@ describe("generateProject", () => {
     await expect(access(config.publicRoot)).rejects.toThrow();
   });
 
+  it("rejects a manifest template path that collides with manifest output", async () => {
+    const previousManifest = JSON.stringify({ name: "Template App" });
+    await mkdir(config.publicRoot, { recursive: true });
+    await writeFile(config.manifestPath, previousManifest);
+    await writeFile(
+      join(projectRoot, "fastifest.config.ts"),
+      'export default { template: { path: "./public/manifest.json" } };\n',
+    );
+    await addLogo();
+
+    await expect(
+      generateProject({ cwd: projectRoot, logger: silentLogger }),
+    ).rejects.toMatchObject({ code: "PATH_INVALID" });
+
+    await expect(readFile(config.manifestPath, "utf8")).resolves.toBe(
+      previousManifest,
+    );
+    await expect(access(config.iconsOutputPath)).rejects.toThrow();
+  });
+
   it("runs discovery, image generation, manifest assembly, and transactional output", async () => {
     await addTemplate();
     await addLogo();

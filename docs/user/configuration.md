@@ -42,7 +42,7 @@ Unknown config keys and malformed values are rejected with field-specific errors
 | `paths.output.logos`       | `./icons`              | Generated icon directory, relative to `paths.public`.                   |
 | `paths.output.screenshots` | `./screenshots`        | Generated screenshot directory, relative to `paths.public`.             |
 
-The default output tree is `public/manifest.json`, `public/icons/`, and `public/screenshots/`. Output directories must remain inside the public root and may not overlap each other, the manifest, or input paths. Fastifest does not infer framework-specific URL rewrites: configure your deployment so the public files are served at paths matching the manifest's relative URLs.
+The default output tree is `public/manifest.json`, `public/icons/`, and `public/screenshots/`. Output directories must remain inside the public root and may not overlap each other, the manifest, or input paths. The template source must also be separate from `manifest.json` and both managed output directories, which Fastifest may replace. Fastifest does not infer framework-specific URL rewrites: configure your deployment so the public files are served at paths matching the manifest's relative URLs.
 
 Input directories are scanned non-recursively. Supported logos are PNG, JPG, JPEG, and SVG. Supported screenshots are PNG, JPG, and JPEG. A missing or empty screenshot directory is allowed and produces a warning. Invalid supported images and extension/content mismatches fail validation.
 

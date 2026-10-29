@@ -181,6 +181,10 @@ describe("resolveConfig", () => {
       { paths: { logos: "./public/icons" } },
       "Input/output paths must not overlap",
     ],
+    [
+      { template: { path: "./public/icons/template.ts" } },
+      "Template/output paths must not overlap",
+    ],
   ])(
     "rejects unsafe or conflicting path relationships",
     async (config, message) => {
