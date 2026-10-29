@@ -734,7 +734,7 @@ async function removeOwnedFile(
   if (
     current.isSymbolicLink() ||
     !current.isFile() ||
-    !unchangedFile(current, expected)
+    !sameFileContents(current, expected)
   ) {
     throw new FastifestError(
       "UNSAFE_PATH",
@@ -747,7 +747,7 @@ async function removeOwnedFile(
     !verify ||
     verify.isSymbolicLink() ||
     !verify.isFile() ||
-    !unchangedFile(verify, expected)
+    !sameFileContents(verify, expected)
   ) {
     throw new FastifestError(
       "UNSAFE_PATH",
