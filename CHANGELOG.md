@@ -6,6 +6,7 @@ All notable changes are tracked here. Fastifest has not yet been published; curr
 
 ### Fixed
 
+- Hardened configuration normalization against inherited `Object.prototype` properties and setters by validating own data properties and defining normalized fields safely.
 - Enforced decoded byte, side, and pixel limits for raster images embedded in SVG logos while retaining support for valid padded and unpadded Base64 data URIs.
 - Made overwrite-disabled asset installation race-safe and preserved concurrent files during transaction rollback.
 - Rejected template and configuration accessor properties so validation cannot accept one value and later serialize a different one.

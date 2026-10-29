@@ -30,13 +30,30 @@ function asRecord(value: unknown, path: string): UnknownRecord {
   if (prototype !== Object.prototype && prototype !== null) {
     return invalid(path, "expected a plain object.");
   }
+  const record = Object.create(null) as UnknownRecord;
   for (const key of Reflect.ownKeys(value)) {
     const descriptor = Object.getOwnPropertyDescriptor(value, key);
     if (descriptor && ("get" in descriptor || "set" in descriptor)) {
       return invalid(path, "accessor properties are not supported.");
     }
+    if (typeof key !== "string" || !descriptor?.enumerable) continue;
+    Object.defineProperty(record, key, {
+      value: descriptor.value,
+      configurable: true,
+      enumerable: true,
+      writable: true,
+    });
   }
-  return value as UnknownRecord;
+  return record;
+}
+
+function assignOwn(target: object, key: string, value: unknown): void {
+  Object.defineProperty(target, key, {
+    value,
+    configurable: true,
+    enumerable: true,
+    writable: true,
+  });
 }
 
 function rejectUnknownKeys(
@@ -106,7 +123,7 @@ function validateMetadata(value: unknown): Record<string, ScreenshotMetadata> {
           "expected a non-empty string.",
         );
       }
-      normalized.label = metadata.label;
+      assignOwn(normalized, "label", metadata.label);
     }
 
     if (metadata.formFactor !== undefined) {
@@ -116,10 +133,13 @@ function validateMetadata(value: unknown): Record<string, ScreenshotMetadata> {
           'expected "narrow" or "wide".',
         );
       }
-      normalized.formFactor = metadata.formFactor;
+      assignOwn(normalized, "formFactor", metadata.formFactor);
     }
 
-    if (normalized.label === undefined && normalized.formFactor === undefined) {
+    if (
+      !Object.hasOwn(normalized, "label") &&
+      !Object.hasOwn(normalized, "formFactor")
+    ) {
       invalid(
         `screenshots.metadata.${basename}`,
         "provide label, formFactor, or both.",
@@ -152,8 +172,9 @@ export function validateConfig(value: unknown): FastifestConfig {
     const normalized: NonNullable<FastifestConfig["paths"]> = {};
     for (const key of ["public", "manifest", "logos", "screenshots"] as const) {
       const valueAtKey = paths[key];
-      if (valueAtKey !== undefined)
-        normalized[key] = readPath(valueAtKey, `paths.${key}`);
+      if (valueAtKey !== undefined) {
+        assignOwn(normalized, key, readPath(valueAtKey, `paths.${key}`));
+      }
     }
     if (paths.output !== undefined) {
       const output = asRecord(paths.output, "paths.output");
@@ -161,46 +182,65 @@ export function validateConfig(value: unknown): FastifestConfig {
       const normalizedOutput: NonNullable<
         NonNullable<FastifestConfig["paths"]>["output"]
       > = {};
-      if (output.logos !== undefined)
-        normalizedOutput.logos = readPath(output.logos, "paths.output.logos");
-      if (output.screenshots !== undefined) {
-        normalizedOutput.screenshots = readPath(
-          output.screenshots,
-          "paths.output.screenshots",
+      if (output.logos !== undefined) {
+        assignOwn(
+          normalizedOutput,
+          "logos",
+          readPath(output.logos, "paths.output.logos"),
         );
       }
-      normalized.output = normalizedOutput;
+      if (output.screenshots !== undefined) {
+        assignOwn(
+          normalizedOutput,
+          "screenshots",
+          readPath(output.screenshots, "paths.output.screenshots"),
+        );
+      }
+      assignOwn(normalized, "output", normalizedOutput);
     }
-    config.paths = normalized;
+    assignOwn(config, "paths", normalized);
   }
 
   if (root.template !== undefined) {
     const template = asRecord(root.template, "template");
     rejectUnknownKeys(template, TEMPLATE_KEYS, "template");
     const normalized: NonNullable<FastifestConfig["template"]> = {};
-    if (template.path !== undefined)
-      normalized.path = readPath(template.path, "template.path");
-    if (template.enabled !== undefined)
-      normalized.enabled = readBoolean(template.enabled, "template.enabled");
-    config.template = normalized;
+    if (template.path !== undefined) {
+      assignOwn(normalized, "path", readPath(template.path, "template.path"));
+    }
+    if (template.enabled !== undefined) {
+      assignOwn(
+        normalized,
+        "enabled",
+        readBoolean(template.enabled, "template.enabled"),
+      );
+    }
+    assignOwn(config, "template", normalized);
   }
 
   if (root.images !== undefined) {
     const images = asRecord(root.images, "images");
     rejectUnknownKeys(images, IMAGE_KEYS, "images");
     const normalized: NonNullable<FastifestConfig["images"]> = {};
-    if (images.overwrite !== undefined)
-      normalized.overwrite = readBoolean(images.overwrite, "images.overwrite");
-    config.images = normalized;
+    if (images.overwrite !== undefined) {
+      assignOwn(
+        normalized,
+        "overwrite",
+        readBoolean(images.overwrite, "images.overwrite"),
+      );
+    }
+    assignOwn(config, "images", normalized);
   }
 
   if (root.screenshots !== undefined) {
     const screenshots = asRecord(root.screenshots, "screenshots");
     rejectUnknownKeys(screenshots, SCREENSHOTS_KEYS, "screenshots");
     if (screenshots.metadata !== undefined) {
-      config.screenshots = { metadata: validateMetadata(screenshots.metadata) };
+      assignOwn(config, "screenshots", {
+        metadata: validateMetadata(screenshots.metadata),
+      });
     } else {
-      config.screenshots = {};
+      assignOwn(config, "screenshots", {});
     }
   }
 
@@ -218,9 +258,9 @@ export function validateConfig(value: unknown): FastifestConfig {
           'expected "error", "warn", "info", or "debug".',
         );
       }
-      normalized.level = logging.level as LogLevel;
+      assignOwn(normalized, "level", logging.level as LogLevel);
     }
-    config.logging = normalized;
+    assignOwn(config, "logging", normalized);
   }
 
   return config;

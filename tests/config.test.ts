@@ -45,6 +45,26 @@ describe("validateConfig", () => {
     expect(reads).toBe(0);
   });
 
+  it("does not read inherited config properties from a polluted Object prototype", () => {
+    const original = Object.getOwnPropertyDescriptor(Object.prototype, "paths");
+    let reads = 0;
+    try {
+      Object.defineProperty(Object.prototype, "paths", {
+        configurable: true,
+        get: () => {
+          reads += 1;
+          return { logos: "./injected" };
+        },
+      });
+
+      expect(validateConfig({})).toEqual({});
+      expect(reads).toBe(0);
+    } finally {
+      if (original) Object.defineProperty(Object.prototype, "paths", original);
+      else Reflect.deleteProperty(Object.prototype, "paths");
+    }
+  });
+
   it("rejects unknown keys with a field-specific error", () => {
     expect(() =>
       validateConfig({ logging: { verbosity: "quiet" } }),
