@@ -57,4 +57,4 @@ Generation errors are thrown as `FastifestError` values with a stable `code`; ca
 
 ## Runtime compatibility
 
-Fastifest has not declared an engine range or general runtime/OS support guarantee. Full candidate checks passed on Ubuntu, Windows, and macOS with Node 20, 22, and 24; Bun 1.4.4 full checks passed on Ubuntu only. A temporary packed install was smoke-tested locally. These results cover the tested combinations, not every runtime, OS, architecture, or minimum-version boundary. Bun on Windows/macOS is unverified. Check release documentation before selecting a production runtime.
+Package metadata declares Node.js `>=20.10.0`. Full candidate checks passed on Ubuntu, Windows, and macOS with Node 20, 22, and 24; packed-install generation smoke tests passed at the Node 20.10.0 floor on those operating systems. Bun 1.4.4 full checks passed on Ubuntu only. These results cover tested combinations, not every runtime, OS, or architecture. Bun on Windows/macOS is unverified. Check release documentation before selecting a production runtime.

@@ -136,7 +136,7 @@ await generateManifest({
 
 The CLI's default command generates, `--config <path>` selects a config, `--help` explains usage, and `--version` prints package version. Exit status is zero only on successful generation; validation or I/O errors return non-zero. Avoid success-shaped partial results.
 
-Use Bun for development, scripts, and CI. Target Node.js 20+ as the npm-consumer runtime, and verify TypeScript config/template loading under supported Node and Bun versions before advertising Bun runtime compatibility. Avoid making Bun a package-consumer requirement. Final supported versions must be stated in package metadata and docs only after CI demonstrates them. Use `sharp` as the native image dependency and test install/build behavior on Linux and Windows.
+Use Bun for development, scripts, and CI. The npm-consumer engine floor is Node.js `>=20.10.0`, declared after the exact-floor packed-install generation smoke passed on Ubuntu, Windows, and macOS; full candidate checks passed on Node 20, 22, and 24 on those runner OSes. Node 20.9.0 fails to parse the JSON import-attribute syntax in the installed Sharp entrypoint despite Sharp's broader engine metadata. Avoid making Bun a package-consumer requirement; its full checks currently pass on Ubuntu only, so do not claim Windows/macOS Bun compatibility. Use `sharp` as the native image dependency and retain the tested OS/runtime limits in public docs.
 
 ## 7. Diagnostics and performance
 

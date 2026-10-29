@@ -34,7 +34,7 @@ The manifest and generated assets must remain inside the configured public root;
 
 ## Sharp installation issue
 
-`sharp` uses platform-specific native binaries. Fastifest has not declared a complete supported operating-system/runtime matrix. Check that your package manager completed installation for your platform and consult the error output for the failing runtime or platform. Focused test results are not a guarantee of support for every environment.
+`sharp` uses platform-specific native binaries. Fastifest declares Node.js `>=20.10.0`. Packed-install generation smoke tests passed on Node 20.10.0 across Ubuntu, Windows, and macOS, and full candidate checks passed on Node 20, 22, and 24 on those operating systems. This does not establish support for every architecture, libc, or other runtime. Check that your package manager completed installation for your platform and consult the error output for the failing runtime or platform.
 
 ## Generation fails during writing
 

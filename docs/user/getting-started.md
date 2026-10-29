@@ -8,7 +8,7 @@
 - Exactly one supported logo in `assets/logos/`.
 - Optionally, supported screenshots in `assets/screenshots/`.
 
-Fastifest uses `sharp` for image processing. Its complete runtime and OS support matrix has not yet been declared; see [CLI and API](cli-and-api.md#runtime-compatibility).
+Fastifest uses `sharp` for image processing and declares Node.js `>=20.10.0` in package metadata. Candidate CI checks cover Node 20, 22, and 24 on Ubuntu, Windows, and macOS; they do not imply support for every architecture or environment. See [CLI and API](cli-and-api.md#runtime-compatibility).
 
 ## 1. Install Fastifest when published
 

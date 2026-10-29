@@ -1,6 +1,6 @@
 # Fastifest
 
-> **Pre-release:** Fastifest is not published to npm yet. Its source package includes a working generator, programmatic API, and CLI, but installation from the npm registry is not available until a release is authorized. Runtime and operating-system support are still being established.
+> **Pre-release:** Fastifest is not published to npm yet. Its source package includes a working generator, programmatic API, and CLI, but installation from the npm registry is not available until a release is authorized. Package metadata sets a Node.js floor of 20.10.0; broader runtime and platform coverage remains limited to the tested combinations below.
 
 Fastifest discovers one logo and optional screenshots, creates standardized PNG assets, and writes a Web App Manifest (`manifest.json`) directly inside your public directory.
 
@@ -80,4 +80,4 @@ Fastifest preserves image aspect ratio, does not crop logos or enlarge screensho
 
 ## Release status
 
-Fastifest has not been published. Full candidate checks passed on Ubuntu, Windows, and macOS with Node 20, 22, and 24, and on Ubuntu with Bun 1.4.4. A local packed-install smoke test also passed. These results cover the tested combinations only; there is no declared Node engine range or general runtime/OS support guarantee, and Bun on Windows/macOS has not been established. Do not assume a registry installation or broader compatibility until a release is available.
+Fastifest has not been published. Package metadata declares Node.js `>=20.10.0`. Full candidate checks passed on Ubuntu, Windows, and macOS with Node 20, 22, and 24; a packed-install generation smoke test also passed on Node 20.10.0 across those three operating systems. Bun 1.4.4 full checks passed on Ubuntu only. This evidence covers tested combinations, not every operating system, architecture, or runtime; Bun on Windows/macOS is unverified. Do not assume a registry installation or broader compatibility until a release is available.
