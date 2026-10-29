@@ -34,6 +34,8 @@ import {
 /** Rename operation seam for deterministic commit-failure tests. */
 export interface GenerationFileOperations {
   rename(source: string, destination: string): Promise<void>;
+  /** @internal Atomic no-replace install seam for overwrite-disabled tests. */
+  link?(source: string, destination: string): Promise<void>;
 }
 
 export interface CommitGenerationOptions {
@@ -492,6 +494,7 @@ async function replaceFile(
   overwrite: boolean,
   journal: ReplacementRecord[],
   renameFile: GenerationFileOperations["rename"],
+  linkFile: NonNullable<GenerationFileOperations["link"]>,
 ): Promise<void> {
   await rejectSymlinkComponents(staged.path, "Staged output");
   const stagedNow = await lstat(staged.path);
@@ -515,6 +518,46 @@ async function replaceFile(
       "OUTPUT_CONFLICT",
       `Reserved Fastifest output appeared during commit and overwrite is disabled: ${staged.targetPath}`,
     );
+  }
+
+  if (!overwrite) {
+    await rejectSymlinkComponents(staged.targetPath, "Generated output");
+    try {
+      await linkFile(staged.path, staged.targetPath);
+    } catch (error) {
+      if (errorCode(error) === "EEXIST") {
+        throw new FastifestError(
+          "OUTPUT_CONFLICT",
+          `Reserved Fastifest output appeared during commit and overwrite is disabled: ${staged.targetPath}`,
+          error,
+        );
+      }
+      throw new FastifestError(
+        "IO_FAILED",
+        `Could not install generated output without overwrite: ${staged.targetPath}`,
+        error,
+      );
+    }
+
+    const record: ReplacementRecord = {
+      targetPath: staged.targetPath,
+      stagedInfo: staged.info,
+      installed: true,
+    };
+    journal.push(record);
+    const installedInfo = await lstat(staged.targetPath);
+    if (
+      installedInfo.isSymbolicLink() ||
+      !installedInfo.isFile() ||
+      !sameFile(installedInfo, staged.info)
+    ) {
+      throw new FastifestError(
+        "UNSAFE_PATH",
+        `Committed output changed unexpectedly: ${staged.targetPath}`,
+      );
+    }
+    await removeOwnedFile(staged.path, staged.info, "staged output");
+    return;
   }
 
   const record: ReplacementRecord = {
@@ -787,6 +830,7 @@ export async function commitGeneration(
   }
   validatePlanPaths(config, plan);
   const renameFile = options.fileOperations?.rename ?? rename;
+  const linkFile = options.fileOperations?.link ?? link;
   const staged: StagedFile[] = [];
   const journal: ReplacementRecord[] = [];
   let stagedCleanupWarnings: string[] = [];
@@ -808,14 +852,20 @@ export async function commitGeneration(
     );
 
     for (const stagedFile of stagedAssets) {
-      await replaceFile(stagedFile, plan.overwrite, journal, renameFile);
+      await replaceFile(
+        stagedFile,
+        plan.overwrite,
+        journal,
+        renameFile,
+        linkFile,
+      );
     }
     await verifyGeneratedReferences(
       builtManifest,
       resolve(config.publicRoot),
       stagedAssets,
     );
-    await replaceFile(stagedManifest, true, journal, renameFile);
+    await replaceFile(stagedManifest, true, journal, renameFile, linkFile);
     manifestCommitted = true;
   } catch (error) {
     const rollbackErrors = await rollback(journal, renameFile);

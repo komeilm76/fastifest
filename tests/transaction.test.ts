@@ -1,5 +1,6 @@
 import {
   access,
+  link,
   mkdir,
   mkdtemp,
   readFile,
@@ -67,6 +68,36 @@ afterEach(async () => {
 });
 
 describe("commitGeneration", () => {
+  it("does not overwrite a reserved output created after preflight when overwrite is disabled", async () => {
+    const noOverwriteConfig = { ...config, overwrite: false };
+    const racedTarget = join(config.iconsOutputPath, "icon-512.png");
+    let createdConcurrentFile = false;
+
+    await expect(
+      commitGeneration(noOverwriteConfig, template, makeIcons(), [], {
+        logger: silentLogger,
+        fileOperations: {
+          rename: async (source, destination) => rename(source, destination),
+          link: async (source, destination) => {
+            if (destination === racedTarget && !createdConcurrentFile) {
+              createdConcurrentFile = true;
+              await writeFile(destination, "concurrent unowned output");
+            }
+            await link(source, destination);
+          },
+        },
+      }),
+    ).rejects.toMatchObject({ code: "OUTPUT_CONFLICT" });
+
+    await expect(readFile(racedTarget, "utf8")).resolves.toBe(
+      "concurrent unowned output",
+    );
+    await expect(
+      access(join(config.iconsOutputPath, "icon-192.png")),
+    ).rejects.toThrow();
+    await expect(access(config.manifestPath)).rejects.toThrow();
+  });
+
   it("creates assets and commits the manifest last on the first run", async () => {
     const renameDestinations: string[] = [];
     const result = await commitGeneration(
