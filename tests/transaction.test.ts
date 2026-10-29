@@ -98,8 +98,49 @@ describe("commitGeneration", () => {
     await expect(access(config.manifestPath)).rejects.toThrow();
   });
 
+  it("preserves a reserved output created during an overwrite-enabled commit", async () => {
+    const racedTarget = join(config.iconsOutputPath, "icon-192.png");
+    let createdConcurrentFile = false;
+
+    await expect(
+      commitGeneration(config, template, makeIcons(), [], {
+        logger: silentLogger,
+        fileOperations: {
+          rename: async (source, destination) => {
+            if (destination === racedTarget && !createdConcurrentFile) {
+              createdConcurrentFile = true;
+              await writeFile(destination, "concurrent unowned output");
+            }
+            if (
+              destination === config.manifestPath &&
+              source.includes(".fastifest-stage-")
+            ) {
+              throw new Error("simulated manifest replacement failure");
+            }
+            await rename(source, destination);
+          },
+          link: async (source, destination) => {
+            if (destination === racedTarget && !createdConcurrentFile) {
+              createdConcurrentFile = true;
+              await writeFile(destination, "concurrent unowned output");
+            }
+            await link(source, destination);
+          },
+        },
+      }),
+    ).rejects.toMatchObject({ code: "OUTPUT_CONFLICT" });
+
+    await expect(readFile(racedTarget, "utf8")).resolves.toBe(
+      "concurrent unowned output",
+    );
+    await expect(access(config.manifestPath)).rejects.toThrow();
+    await expect(
+      access(join(config.iconsOutputPath, "icon-512.png")),
+    ).rejects.toThrow();
+  });
+
   it("creates assets and commits the manifest last on the first run", async () => {
-    const renameDestinations: string[] = [];
+    const installDestinations: string[] = [];
     const result = await commitGeneration(
       config,
       template,
@@ -109,17 +150,21 @@ describe("commitGeneration", () => {
         logger: silentLogger,
         fileOperations: {
           rename: async (source, destination) => {
-            renameDestinations.push(destination);
+            installDestinations.push(destination);
             await rename(source, destination);
+          },
+          link: async (source, destination) => {
+            installDestinations.push(destination);
+            await link(source, destination);
           },
         },
       },
     );
 
     expect(result.manifestPath).toBe(config.manifestPath);
-    expect(renameDestinations).toHaveLength(6);
-    expect(renameDestinations.at(-1)).toBe(config.manifestPath);
-    expect(renameDestinations.slice(0, -1)).not.toContain(config.manifestPath);
+    expect(installDestinations).toHaveLength(6);
+    expect(installDestinations.at(-1)).toBe(config.manifestPath);
+    expect(installDestinations.slice(0, -1)).not.toContain(config.manifestPath);
     expect(result.warnings).toEqual([]);
     await expect(readFile(config.manifestPath, "utf8")).resolves.toBe(
       result.json,
@@ -382,21 +427,31 @@ describe("commitGeneration", () => {
     await writeFile(stalePath, "stale image");
 
     let replacedStaleWithDirectory = false;
+    const beforeManifestInstall = async (
+      source: string,
+      destination: string,
+    ): Promise<void> => {
+      if (
+        !replacedStaleWithDirectory &&
+        destination === config.manifestPath &&
+        source.includes(".fastifest-stage-")
+      ) {
+        replacedStaleWithDirectory = true;
+        await unlink(stalePath);
+        await mkdir(stalePath);
+        await writeFile(join(stalePath, "keep.txt"), "keep");
+      }
+    };
     const result = await commitGeneration(config, template, makeIcons(), [], {
       logger: silentLogger,
       fileOperations: {
         rename: async (source, destination) => {
-          if (
-            !replacedStaleWithDirectory &&
-            destination === config.manifestPath &&
-            source.includes(".fastifest-stage-")
-          ) {
-            replacedStaleWithDirectory = true;
-            await unlink(stalePath);
-            await mkdir(stalePath);
-            await writeFile(join(stalePath, "keep.txt"), "keep");
-          }
+          await beforeManifestInstall(source, destination);
           await rename(source, destination);
+        },
+        link: async (source, destination) => {
+          await beforeManifestInstall(source, destination);
+          await link(source, destination);
         },
       },
     });

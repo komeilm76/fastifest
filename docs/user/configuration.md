@@ -78,7 +78,7 @@ A non-empty `label`, `formFactor` (`"narrow"` or `"wide"`), or both may be suppl
 | ----------- | ------- | --------------------------------------------------------------------------------------------- |
 | `overwrite` | `true`  | Allow replacement of reserved generated image filenames in the configured output directories. |
 
-This option applies to managed image outputs, not arbitrary files. With overwrite disabled, if a reserved image output already exists or a reserved stale screenshot would be removed, generation fails before changing files. With overwrite enabled, Fastifest only replaces its reserved icon names and `screenshot-NN.png` names in dedicated output directories. It does not recursively delete directories or remove unrecognized files. Stale reserved screenshots are cleaned only after the new manifest commits. `manifest.json` is regenerated from the template and generated assets; it is not merged with old values.
+This option applies to managed image outputs, not arbitrary files. With overwrite disabled, if a reserved image output already exists or a reserved stale screenshot would be removed, generation fails before changing files. With overwrite enabled, Fastifest only replaces its reserved icon names and `screenshot-NN.png` names in dedicated output directories. If a reserved target appears during commit after it was found absent, Fastifest refuses to replace the concurrent file and reports `OUTPUT_CONFLICT`; resolve the conflict before retrying. It does not recursively delete directories or remove unrecognized files. Stale reserved screenshots are cleaned only after the new manifest commits. `manifest.json` is regenerated from the template and generated assets; it is not merged with old values.
 
 ## `logging`
 

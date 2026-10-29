@@ -67,15 +67,15 @@ The package root exports the following functions. `generateProject` is the high-
 
 Catch `FastifestError` and branch on its stable `code`; the message is intended for people and is not a stable machine-readable contract. The primary error codes are:
 
-| Code                                                             | Meaning                                                                                                                   |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `CONFIG_INVALID` / `CONFIG_LOAD_FAILED`                          | Invalid configuration values, or config file loading/evaluation failed.                                                   |
-| `TEMPLATE_INVALID` / `TEMPLATE_LOAD_FAILED` / `TEMPLATE_MISSING` | Invalid template, template loading/evaluation failed, or a required template is missing while creation is disabled.       |
-| `PATH_INVALID` / `UNSAFE_PATH`                                   | Invalid or overlapping paths, an output outside its allowed root, or a symlink/reparse point was encountered.             |
-| `INPUT_INVALID` / `INPUT_LIMIT`                                  | Required inputs are missing/ambiguous/invalid, or a configured file/dimension limit was exceeded.                         |
-| `IMAGE_INVALID`                                                  | Supported image data is corrupt, mismatched, or cannot be processed.                                                      |
-| `OUTPUT_CONFLICT`                                                | A reserved generated output exists, or a stale reserved screenshot would need removal, while image overwrite is disabled. |
-| `IO_FAILED`                                                      | A filesystem failure prevented generation or commit; some post-commit cleanup failures are downgraded to warnings.        |
+| Code                                                             | Meaning                                                                                                                                                                           |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CONFIG_INVALID` / `CONFIG_LOAD_FAILED`                          | Invalid configuration values, or config file loading/evaluation failed.                                                                                                           |
+| `TEMPLATE_INVALID` / `TEMPLATE_LOAD_FAILED` / `TEMPLATE_MISSING` | Invalid template, template loading/evaluation failed, or a required template is missing while creation is disabled.                                                               |
+| `PATH_INVALID` / `UNSAFE_PATH`                                   | Invalid or overlapping paths, an output outside its allowed root, or a symlink/reparse point was encountered.                                                                     |
+| `INPUT_INVALID` / `INPUT_LIMIT`                                  | Required inputs are missing/ambiguous/invalid, or a configured file/dimension limit was exceeded.                                                                                 |
+| `IMAGE_INVALID`                                                  | Supported image data is corrupt, mismatched, or cannot be processed.                                                                                                              |
+| `OUTPUT_CONFLICT`                                                | A reserved generated output conflicts with the run, a stale reserved screenshot would need removal while image overwrite is disabled, or a reserved target appears during commit. |
+| `IO_FAILED`                                                      | A filesystem failure prevented generation or commit; some post-commit cleanup failures are downgraded to warnings.                                                                |
 
 `FastifestError` also exposes an optional `cause` containing the underlying failure when available. Other errors can propagate from caller-provided callbacks such as a custom logger sink.
 

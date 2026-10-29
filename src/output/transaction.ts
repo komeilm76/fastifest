@@ -34,7 +34,7 @@ import {
 /** Rename operation seam for deterministic commit-failure tests. */
 export interface GenerationFileOperations {
   rename(source: string, destination: string): Promise<void>;
-  /** @internal Atomic no-replace install seam for overwrite-disabled tests. */
+  /** @internal Atomic no-replace install seam for output-race tests. */
   link?(source: string, destination: string): Promise<void>;
 }
 
@@ -534,7 +534,7 @@ async function replaceFile(
     );
   }
 
-  if (!overwrite) {
+  if (!overwrite || previousInfo === undefined) {
     await rejectSymlinkComponents(staged.targetPath, "Generated output");
     try {
       await linkFile(staged.path, staged.targetPath);
@@ -542,13 +542,15 @@ async function replaceFile(
       if (errorCode(error) === "EEXIST") {
         throw new FastifestError(
           "OUTPUT_CONFLICT",
-          `Reserved Fastifest output appeared during commit and overwrite is disabled: ${staged.targetPath}`,
+          overwrite
+            ? `Reserved Fastifest output appeared during commit: ${staged.targetPath}`
+            : `Reserved Fastifest output appeared during commit and overwrite is disabled: ${staged.targetPath}`,
           error,
         );
       }
       throw new FastifestError(
         "IO_FAILED",
-        `Could not install generated output without overwrite: ${staged.targetPath}`,
+        `Could not install generated output without replacing a concurrent file: ${staged.targetPath}`,
         error,
       );
     }
