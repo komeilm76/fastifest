@@ -80,4 +80,4 @@ Fastifest preserves image aspect ratio, does not crop logos or enlarge screensho
 
 ## Release status
 
-Fastifest has not been published. The packed package has been smoke-tested locally, and focused Windows CI covers selected suites on Node 20 and 22; this is not a complete runtime or operating-system support declaration. See the documentation for current behavior and limitations. Do not assume a registry installation or general compatibility matrix until a release is available.
+Fastifest has not been published. Full candidate checks passed on Ubuntu, Windows, and macOS with Node 20, 22, and 24, and on Ubuntu with Bun 1.4.4. A local packed-install smoke test also passed. These results cover the tested combinations only; there is no declared Node engine range or general runtime/OS support guarantee, and Bun on Windows/macOS has not been established. Do not assume a registry installation or broader compatibility until a release is available.

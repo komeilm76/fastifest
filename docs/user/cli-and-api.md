@@ -57,4 +57,4 @@ Generation errors are thrown as `FastifestError` values with a stable `code`; ca
 
 ## Runtime compatibility
 
-Fastifest has not declared an engine range or completed its runtime/OS support matrix. Node 22 is used for full local checks; focused Windows suites have passed on Node 20 and 22. A temporary packed install was smoke-tested locally. These results do not establish whole-package support for every runtime or operating system. Check release documentation before selecting a production runtime.
+Fastifest has not declared an engine range or general runtime/OS support guarantee. Full candidate checks passed on Ubuntu, Windows, and macOS with Node 20, 22, and 24; Bun 1.4.4 full checks passed on Ubuntu only. A temporary packed install was smoke-tested locally. These results cover the tested combinations, not every runtime, OS, architecture, or minimum-version boundary. Bun on Windows/macOS is unverified. Check release documentation before selecting a production runtime.
