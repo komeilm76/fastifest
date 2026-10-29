@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-26.04, windows-2025, macos-26]
         node-version: [20, 22, 24]
     steps:
       - name: Check out source
@@ -51,10 +51,13 @@ jobs:
           npm run build
           node dist/cli.js --help
           node dist/cli.js --version
+      - name: Verify npm package contents
+        if: matrix.node-version == 24
+        run: npm run package:check
 
   bun-linux-candidate:
-    name: ubuntu-latest · Bun 1.4.4 candidate
-    runs-on: ubuntu-latest
+    name: ubuntu-26.04 · Bun 1.4.4 candidate
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - name: Check out source
@@ -71,6 +74,9 @@ jobs:
       - name: Run full checks under Bun
         run: bun run check
 
+      - name: Verify npm package contents
+        run: npm run package:check
+
   minimum-node-packed-install:
     name: ${{ matrix.os }} · Node 20.10.0 packed-install candidate
     runs-on: ${{ matrix.os }}
@@ -78,7 +84,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-26.04, windows-2025, macos-26]
     steps:
       - name: Check out source
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5

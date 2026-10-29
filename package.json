@@ -27,6 +27,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "package:check": "node scripts/verify-package-contents.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -19,7 +19,7 @@ concurrency:
 jobs:
   windows-path-safety:
     name: Windows · Node ${{ matrix.node-version }}
-    runs-on: windows-latest
+    runs-on: windows-2025
     strategy:
       fail-fast: false
       matrix:
