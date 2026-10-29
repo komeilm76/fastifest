@@ -7,7 +7,7 @@ All notable changes are tracked here. Fastifest has not yet been published; curr
 ### Fixed
 
 - Validated manifest templates from own enumerable data properties, ignoring inherited values and rejecting sparse arrays that could otherwise read inherited array entries.
-- Hardened configuration normalization against inherited `Object.prototype` properties and setters by validating own data properties and defining normalized fields safely.
+- Hardened configuration validation and path resolution against inherited `Object.prototype` properties and setters by validating own data properties, defining normalized fields safely, and reading only own normalized values.
 - Enforced decoded byte, side, and pixel limits for raster images embedded in SVG logos while retaining support for valid padded and unpadded Base64 data URIs.
 - Made overwrite-disabled asset installation race-safe and preserved concurrent files during transaction rollback.
 - Rejected template and configuration accessor properties so validation cannot accept one value and later serialize a different one.

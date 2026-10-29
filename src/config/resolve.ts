@@ -22,6 +22,15 @@ function pathsOverlap(first: string, second: string): boolean {
   return pathIsWithin(first, second) || pathIsWithin(second, first);
 }
 
+function ownValue<T extends object, K extends keyof T>(
+  record: T | undefined,
+  key: K,
+): T[K] | undefined {
+  return record !== undefined && Object.hasOwn(record, key)
+    ? record[key]
+    : undefined;
+}
+
 function resolveInputPath(projectRoot: string, configured: string): string {
   return resolve(projectRoot, configured);
 }
@@ -150,11 +159,19 @@ export async function resolveConfig(
     );
   }
 
+  const paths = ownValue(config, "paths");
+  const outputPaths = ownValue(paths, "output");
+  const templateConfig = ownValue(config, "template");
+  const imageConfig = ownValue(config, "images");
+  const screenshotConfig = ownValue(config, "screenshots");
+  const loggingConfig = ownValue(config, "logging");
+
   const publicRoot = resolveInputPath(
     projectRoot,
-    config.paths?.public ?? "./public",
+    ownValue(paths, "public") ?? "./public",
   );
-  const configuredManifestPath = config.paths?.manifest ?? "./manifest.json";
+  const configuredManifestPath =
+    ownValue(paths, "manifest") ?? "./manifest.json";
   if (isAbsolute(configuredManifestPath)) {
     throw new FastifestError(
       "PATH_INVALID",
@@ -170,25 +187,25 @@ export async function resolveConfig(
   }
   const logosPath = resolveInputPath(
     projectRoot,
-    config.paths?.logos ?? "./assets/logos",
+    ownValue(paths, "logos") ?? "./assets/logos",
   );
   const screenshotsPath = resolveInputPath(
     projectRoot,
-    config.paths?.screenshots ?? "./assets/screenshots",
+    ownValue(paths, "screenshots") ?? "./assets/screenshots",
   );
   const iconsOutputPath = resolveOutputPath(
     publicRoot,
-    config.paths?.output?.logos ?? "./icons",
+    ownValue(outputPaths, "logos") ?? "./icons",
     "output.logos",
   );
   const screenshotsOutputPath = resolveOutputPath(
     publicRoot,
-    config.paths?.output?.screenshots ?? "./screenshots",
+    ownValue(outputPaths, "screenshots") ?? "./screenshots",
     "output.screenshots",
   );
   const templatePath = resolveInputPath(
     projectRoot,
-    config.template?.path ?? "./manifest.template.ts",
+    ownValue(templateConfig, "path") ?? "./manifest.template.ts",
   );
 
   assertDisjoint("Input", [
@@ -241,9 +258,9 @@ export async function resolveConfig(
     iconsOutputPath,
     screenshotsOutputPath,
     templatePath,
-    templateEnabled: config.template?.enabled ?? true,
-    overwrite: config.images?.overwrite ?? true,
-    screenshotMetadata: config.screenshots?.metadata ?? {},
-    logLevel: config.logging?.level ?? "info",
+    templateEnabled: ownValue(templateConfig, "enabled") ?? true,
+    overwrite: ownValue(imageConfig, "overwrite") ?? true,
+    screenshotMetadata: ownValue(screenshotConfig, "metadata") ?? {},
+    logLevel: ownValue(loggingConfig, "level") ?? "info",
   };
 }

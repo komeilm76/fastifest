@@ -147,6 +147,34 @@ describe("resolveConfig", () => {
     });
   });
 
+  it("does not read inherited config properties while resolving defaults", async () => {
+    const original = Object.getOwnPropertyDescriptor(Object.prototype, "paths");
+    let reads = 0;
+    let resolved: Awaited<ReturnType<typeof resolveConfig>> | undefined;
+    let thrown: unknown;
+    try {
+      Object.defineProperty(Object.prototype, "paths", {
+        configurable: true,
+        get: () => {
+          reads += 1;
+          return { logos: "./injected" };
+        },
+      });
+      try {
+        resolved = await resolveConfig({}, { cwd: projectRoot });
+      } catch (error) {
+        thrown = error;
+      }
+    } finally {
+      if (original) Object.defineProperty(Object.prototype, "paths", original);
+      else Reflect.deleteProperty(Object.prototype, "paths");
+    }
+
+    expect(thrown).toBeUndefined();
+    expect(reads).toBe(0);
+    expect(resolved?.logosPath).toBe(join(projectRoot, "assets", "logos"));
+  });
+
   it("resolves nested output paths relative to the configured public root", async () => {
     const resolved = await resolveConfig(
       {
