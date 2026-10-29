@@ -5,6 +5,7 @@ import { FastifestError } from "../errors.js";
 import type { FastifestConfig } from "../types.js";
 import { validateConfig } from "./validate.js";
 
+/** Options for locating and loading a consumer project's config file. */
 export interface LoadConfigOptions {
   /** Consumer project directory. Defaults to the current working directory. */
   cwd?: string;
@@ -12,7 +13,17 @@ export interface LoadConfigOptions {
   configPath?: string;
 }
 
-/** Load and validate fastifest.config.ts, or return defaults when it is absent. */
+/**
+ * Load and validate `fastifest.config.ts`, or return an empty config when the
+ * default file is absent. An explicitly requested missing/unreadable file is
+ * an error. Config files are executable TypeScript and must be trusted.
+ *
+ * @param options - Project root and optional explicit config path.
+ * @returns A validated `FastifestConfig`; omitted fields retain their defaults
+ * when passed to `resolveConfig`.
+ * @throws {FastifestError} With `CONFIG_LOAD_FAILED` for load/evaluation errors
+ * and `CONFIG_INVALID` for invalid config values.
+ */
 export async function loadConfig(
   options: LoadConfigOptions = {},
 ): Promise<FastifestConfig> {

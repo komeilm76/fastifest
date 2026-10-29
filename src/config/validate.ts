@@ -125,7 +125,16 @@ function validateMetadata(value: unknown): Record<string, ScreenshotMetadata> {
   return output;
 }
 
-/** Validate unknown config data and return a typed copy with unknown keys rejected. */
+/**
+ * Validate an unknown config value and return a normalized typed copy.
+ * Unknown keys, malformed nested values, and invalid screenshot annotations are
+ * rejected; defaults and filesystem resolution are applied separately by
+ * `resolveConfig`.
+ *
+ * @param value - Candidate config object, commonly loaded from TypeScript.
+ * @returns A validated `FastifestConfig` containing only supported keys.
+ * @throws {FastifestError} With `CONFIG_INVALID` when the value is malformed.
+ */
 export function validateConfig(value: unknown): FastifestConfig {
   const root = asRecord(value, "");
   rejectUnknownKeys(root, CONFIG_KEYS, "");

@@ -92,7 +92,16 @@ function requireObjectArray(
   }
 }
 
-/** Validate template shape and JSON values before manifest-level semantic checks. */
+/**
+ * Validate a manifest template's supported shape and JSON-compatible members.
+ * At least one of `name` or `short_name` is required, and Fastifest-owned
+ * `icons`/`screenshots` members may not be supplied. This validates the
+ * template structure, not every Web App Manifest semantic constraint.
+ *
+ * @param value - Candidate default-exported template object.
+ * @returns The validated manifest template.
+ * @throws {FastifestError} With `TEMPLATE_INVALID` when validation fails.
+ */
 export function validateTemplate(value: unknown): ManifestTemplate {
   if (!isRecord(value)) invalid("", "expected a default-exported object.");
   if (Object.hasOwn(value, "icons"))
@@ -151,7 +160,15 @@ export function validateTemplate(value: unknown): ManifestTemplate {
   return value as ManifestTemplate;
 }
 
-/** Load a trusted TypeScript manifest template once and validate its export. */
+/**
+ * Load a trusted TypeScript manifest template and validate its default export.
+ * The template is executable code; load only files you trust.
+ *
+ * @param templatePath - Path to the TypeScript template; an absolute path gives unambiguous resolution.
+ * @returns The validated `ManifestTemplate` value.
+ * @throws {FastifestError} With `TEMPLATE_LOAD_FAILED` for loading/evaluation
+ * errors or `TEMPLATE_INVALID` for invalid template values.
+ */
 export async function loadTemplate(
   templatePath: string,
 ): Promise<ManifestTemplate> {
@@ -184,16 +201,33 @@ export default {
 };
 `;
 
+/** Options for create-only starter behavior and template-load logging. */
 export interface LoadOrCreateTemplateOptions {
-  /** Controls creation only; an existing template is always loaded. */
+  /** Controls creation only; an existing template is always loaded. Defaults to `true`. */
   enabled?: boolean;
+  /** Optional logger; defaults to an `info` logger. */
   logger?: Logger;
 }
 
-/** `created` is a first-run stop signal; never use its starter as manifest data. */
+/**
+ * Result of loading or creating a template. Treat `status: "created"` as a
+ * first-run stop signal; the starter must be customized before generation.
+ */
 export type LoadOrCreateTemplateResult =
-  | { status: "loaded"; template: ManifestTemplate }
-  | { status: "created"; templatePath: string; guidance: string };
+  | {
+      /** Existing template loaded and validated. */
+      status: "loaded";
+      /** Validated existing template. */
+      template: ManifestTemplate;
+    }
+  | {
+      /** Starter created; no template data should be used for generation yet. */
+      status: "created";
+      /** Absolute path of the starter file. */
+      templatePath: string;
+      /** Human-readable instruction to customize the starter and run again. */
+      guidance: string;
+    };
 
 function errorCode(error: unknown): string | undefined {
   if (typeof error === "object" && error !== null && "code" in error) {
@@ -369,7 +403,17 @@ async function createStarterTemplate(templatePath: string): Promise<boolean> {
   return true;
 }
 
-/** Load an existing template or create a starter and signal the caller to stop. */
+/**
+ * Load an existing template or create a starter and signal the caller to stop.
+ * Existing templates are loaded regardless of `options.enabled`. If the file is
+ * missing, creation defaults to enabled; with creation disabled this rejects
+ * using `TEMPLATE_MISSING`.
+ *
+ * @param templatePath - Absolute or relative template path; relative paths resolve from the current working directory.
+ * @param options - Creation behavior and optional logger.
+ * @returns A loaded template or a `created` stop result with next-step guidance.
+ * @throws {FastifestError} With template, path-safety, or I/O error codes.
+ */
 export async function loadOrCreateTemplate(
   templatePath: string,
   options: LoadOrCreateTemplateOptions = {},

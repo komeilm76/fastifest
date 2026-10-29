@@ -13,30 +13,53 @@ import {
   type CommittedGeneration,
 } from "./output/transaction.js";
 
+/** Options controlling a single `generateProject` run. */
 export interface GenerateProjectOptions {
   /** Consumer project directory. Defaults to the current working directory. */
   cwd?: string;
-  /** Optional config file, resolved from cwd unless absolute. */
+  /** Optional config file, resolved from `cwd` unless absolute. */
   configPath?: string;
   /** Optional logger override used for every pipeline stage. */
   logger?: Logger;
 }
 
+/** Successful first-run result when Fastifest creates a starter template and stops. */
 export interface TemplateCreatedResult {
+  /** Discriminator for the create-template stop result. */
   status: "template-created";
+  /** Absolute path to the starter template; customize this file before rerunning. */
   templatePath: string;
+  /** Human-readable next-step instructions. No manifest or image assets were written. */
   guidance: string;
 }
 
+/** Successful result after assets and `manifest.json` have been generated. */
 export interface GeneratedProject extends CommittedGeneration {
+  /** Discriminator for a completed generation. */
   status: "generated";
+  /** Absolute path of the discovered source logo. */
   logoSource: string;
+  /** Absolute paths of discovered screenshot sources, in processing order. */
   screenshotSources: string[];
 }
 
 /**
- * Run the shared generation pipeline for a project. A newly created starter
- * template returns a stop result before image discovery or output mutation.
+ * Generate a Web App Manifest and managed image assets for a consumer project.
+ *
+ * The pipeline loads `fastifest.config.ts` when present, discovers one supported
+ * logo plus optional screenshots, creates PNG assets, and writes
+ * `manifest.json` directly inside the configured public directory. A missing
+ * enabled template is created once and returns a `template-created` stop result;
+ * call again after customizing it to generate outputs.
+ *
+ * Supported logo formats are PNG, JPEG, and SVG. Supported screenshot formats
+ * are PNG and JPEG. See the user guide for byte/pixel limits and output details.
+ *
+ * @param options - Project location, optional config path, and logger override.
+ * @returns Either a first-run template stop result or completed manifest/assets.
+ * @throws {import("./errors.js").FastifestError} With a stable `code` for
+ * config, template, input, path, image, output-conflict, or filesystem failures.
+ * @throws {Error} If a caller-supplied logger sink throws, its error propagates unchanged.
  */
 export async function generateProject(
   options: GenerateProjectOptions = {},

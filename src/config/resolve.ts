@@ -4,6 +4,7 @@ import { FastifestError } from "../errors.js";
 import type { FastifestConfig, ResolvedFastifestConfig } from "../types.js";
 import { validateConfig } from "./validate.js";
 
+/** Options used while normalizing a config for a consumer project. */
 export interface ResolveConfigOptions {
   /** Consumer project directory. Defaults to the current working directory. */
   cwd?: string;
@@ -102,7 +103,20 @@ function assertDisjoint(label: string, paths: Array<[string, string]>): void {
   }
 }
 
-/** Apply defaults, resolve project/public-root paths, and enforce filesystem boundaries. */
+/**
+ * Validate a config, apply defaults, resolve absolute paths, and enforce path boundaries.
+ *
+ * Relative input/template paths resolve from the project root. Generated output
+ * directories resolve from `paths.public` and must remain disjoint and contained
+ * there; `manifest.json` must be directly inside the public root. Existing
+ * symlink/reparse-point components are rejected.
+ *
+ * @param input - Untrusted config value to validate; unknown keys are rejected.
+ * @param options - Consumer project root, defaulting to `process.cwd()`.
+ * @returns A normalized configuration with absolute paths and resolved defaults.
+ * @throws {FastifestError} With `CONFIG_INVALID`, `PATH_INVALID`, `UNSAFE_PATH`,
+ * or `IO_FAILED` when validation or path checks fail.
+ */
 export async function resolveConfig(
   input: FastifestConfig | unknown,
   options: ResolveConfigOptions = {},
