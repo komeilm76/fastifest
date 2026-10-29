@@ -324,7 +324,7 @@ describe("commitGeneration", () => {
       },
     });
 
-    await expect(access(config.manifestPath)).resolves.toBeUndefined();
+    await access(config.manifestPath);
     await expect(readFile(join(stalePath, "keep.txt"), "utf8")).resolves.toBe(
       "keep",
     );

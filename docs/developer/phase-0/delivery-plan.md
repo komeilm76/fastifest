@@ -25,6 +25,8 @@ Package metadata, strict TypeScript setup, public config/template types, runtime
 
 Gate: foundation checks pass; continue to withhold runtime support claims and publish no artifacts while later runtime-sensitive functionality is unimplemented.
 
+Candidate-runtime follow-up (2026-10-29): full format, typecheck, build, and 125-test checks passed locally on Linux x64 under Node 20.20.2, Node 22.22.3, and Bun 1.4.4. The built CLI help/version checks also passed on both Node versions. Bun initially exposed five test assertions that assumed `fs.promises.access()` resolves specifically to `undefined`; the tests now assert successful access without constraining its resolved value, after which the full Bun suite passed. Added `.github/workflows/runtime-compatibility-candidates.yml` to exercise the full checks on Ubuntu, Windows, and macOS across those three runtime candidates. Hosted matrix results are pending; these local results do not establish Windows/macOS support, an engine range, or a release compatibility claim.
+
 ## Phase 2 — discovery and safe image processing (in progress)
 
 Added `sharp@0.35.5` as a runtime dependency and a local SVG-to-PNG smoke test. The smoke test passes under Node 20.20.2, Node 22.22.3, and Bun 1.4.4 in this workspace. Implemented deterministic direct-child discovery, exact-one-logo validation, optional screenshot handling, supported-format/content checks, input byte/pixel/side limits, SVG external-reference rejection, symlink-safe bounded reads, exact screenshot metadata matching, and deterministic NFC/code-point ordering. This validates the installed runtime combination here, not other operating systems or the complete compatibility matrix; no Node engine range is declared.

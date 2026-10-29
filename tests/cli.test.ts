@@ -96,9 +96,7 @@ describe("runCli", () => {
     );
     expect(stderr).toEqual([]);
     expect(stdout).toEqual([]);
-    await expect(
-      access(join(projectRoot, "manifest.template.ts")),
-    ).resolves.toBeUndefined();
+    await access(join(projectRoot, "manifest.template.ts"));
     await expect(access(join(projectRoot, "public"))).rejects.toThrow();
   });
 

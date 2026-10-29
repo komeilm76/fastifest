@@ -186,7 +186,7 @@ describe("preflightManagedOutputs", () => {
     await expect(
       preflightManagedOutputs(config, makeIcons(), [makeScreenshot()]),
     ).rejects.toMatchObject({ code: "PATH_INVALID" });
-    await expect(access(desiredPath)).resolves.toBeUndefined();
+    await access(desiredPath);
   });
 
   it("ignores stale screenshot-name directories rather than treating them as files", async () => {
@@ -320,7 +320,7 @@ describe("removeStaleScreenshotsAfterManifestCommit", () => {
       silentLogger,
     );
     expect(warnings).toHaveLength(1);
-    await expect(access(stale)).resolves.toBeUndefined();
+    await access(stale);
   });
 
   it("warns and leaves a junction or symlink at a planned stale path", async () => {

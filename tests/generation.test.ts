@@ -293,6 +293,6 @@ describe("generateProject", () => {
     expect(result.status).toBe("generated");
     if (result.status !== "generated") throw new Error("Expected generation");
     expect(result.value.name).toBe("Custom App");
-    await expect(access(customTemplate)).resolves.toBeUndefined();
+    await access(customTemplate);
   });
 });
