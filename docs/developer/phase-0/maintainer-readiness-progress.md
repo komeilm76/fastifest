@@ -31,7 +31,8 @@ Updated: 2026-10-30
 - Current open draft PR head `42e31b0` had all checks passing: runtime matrix [`41058076765`](https://github.com/komeilm76/fastifest/actions/runs/41058076765) and Windows path-safety [`41058076684`](https://github.com/komeilm76/fastifest/actions/runs/41058076684).
 - PR head `b5bd7c4` had all checks passing: runtime matrix [`41059319061`](https://github.com/komeilm76/fastifest/actions/runs/41059319061) and Windows path-safety [`41059319090`](https://github.com/komeilm76/fastifest/actions/runs/41059319090).
 - PR head `4f8dbd4` had all checks passing: runtime matrix [`41063334706`](https://github.com/komeilm76/fastifest/actions/runs/41063334706) and Windows path-safety [`41063334781`](https://github.com/komeilm76/fastifest/actions/runs/41063334781).
-- Current PR head `168fbd5` also has all checks passing: runtime matrix [`41063594843`](https://github.com/komeilm76/fastifest/actions/runs/41063594843) and Windows path-safety [`41063594852`](https://github.com/komeilm76/fastifest/actions/runs/41063594852).
+- PR head `168fbd5` had all checks passing: runtime matrix [`41063594843`](https://github.com/komeilm76/fastifest/actions/runs/41063594843) and Windows path-safety [`41063594852`](https://github.com/komeilm76/fastifest/actions/runs/41063594852).
+- Current PR head `bce1828` also has all checks passing: runtime matrix [`41063853564`](https://github.com/komeilm76/fastifest/actions/runs/41063853564) and Windows path-safety [`41063853570`](https://github.com/komeilm76/fastifest/actions/runs/41063853570).
 - Draft PR [#1](https://github.com/komeilm76/fastifest/pull/1) is open for review. No merge/live-template verification has occurred.
 
 ## Next tasks (phase-priority order)
@@ -58,4 +59,5 @@ Updated: 2026-10-30
 - 2026-10-30 — Rechecked open draft PR head `42e31b0`; all PR checks passed (runtime run `41058076765`, Windows path-safety run `41058076684`).
 - 2026-10-30 — Reviewed current draft PR #1 status: it remains open/draft with no reviews or comments. All checks passed on head `b5bd7c4` (runtime run `41059319061`, Windows path-safety run `41059319090`).
 - 2026-10-30 — Rechecked latest PR head `4f8dbd4`; all checks passed (runtime run `41063334706`, Windows path-safety run `41063334781`).
-- 2026-10-30 — Rechecked current PR head `168fbd5`; all checks passed (runtime run `41063594843`, Windows path-safety run `41063594852`). The PR remains open/draft with no comments or reviews. Private reporting remains disabled, `main` remains unprotected, and no repository settings changed; maintainer decisions and user review are pending.
+- 2026-10-30 — Rechecked PR head `168fbd5`; all checks passed (runtime run `41063594843`, Windows path-safety run `41063594852`).
+- 2026-10-30 — Current PR head `bce1828` also passes all checks (runtime run `41063853564`, Windows path-safety run `41063853570`). PR #1 is still open/draft with no comments or reviews. Private reporting remains disabled, `main` remains unprotected, and no repository settings changed; maintainer decisions and user review are pending.
