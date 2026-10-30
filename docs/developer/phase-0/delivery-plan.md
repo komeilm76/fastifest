@@ -119,7 +119,7 @@ Choose and configure one reviewable versioning approach, confirm npm package ide
 ## Next tasks (priority order)
 
 1. **Phase 4 — resolve the private-reporting readiness gap.** A repository maintainer should enable GitHub private vulnerability reporting or supply and publish a private contact route, then update `SECURITY.md` to match the actual setting before merging the forms/policy.
-2. **Phase 4 — verify branch protection with an authorized maintainer.** The integration could not read the endpoint; confirm required reviews/status checks and document only verified settings.
+2. **Phase 4 — maintainer decision on branch protection.** `main` currently has protection disabled and no rulesets/required checks; an authorized maintainer should decide and configure appropriate requirements.
 3. **Phase 4 — user review and merge readiness.** Review the maintainer-readiness report and documentation changes; after approval, merge through the normal repository process and verify that GitHub recognizes the issue forms and security policy on `main`.
 4. **Phase 4 — complete the remaining phase gate.** Reconfirm consumer-facing claims, package allowlist, workflows, and the full local/hosted check set; record any unverified runtime or platform coverage without broadening claims.
 5. **Phase 5 — release-readiness review, only after Phase 4 and explicit authorization.** Confirm versioning, package identity/ownership, publishing permissions, workflow security, and release notes. Do not publish without explicit owner authorization.
