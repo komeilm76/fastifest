@@ -1,0 +1,63 @@
+# Maintainer readiness review progress
+
+Updated: 2026-10-30
+
+## Current task
+
+**Phase 4 — verify maintainer guidance and issue forms against the GitHub repository settings; keep them outside the npm package.**
+
+**Status: Local and hosted checks are complete for the current code; a draft PR is open for review. Maintainer settings remain pending, and this must not be merged until the recorded blockers are resolved.** Draft PR [#1](https://github.com/komeilm76/fastifest/pull/1) is open; it does not merge or activate the forms. The repository is public, default branch `main`, Issues enabled, and Discussions disabled. GitHub reports private vulnerability reporting is disabled. No alternate private contact is named in the policy or issue forms reviewed. `SECURITY.md` and the issue forms are on this working branch but not on `main`; their GitHub links and forms are not live until merged. The `main` branch endpoint reports `protected: false` and protection `enabled: false`, with no required status checks; the repository rulesets endpoint (including inherited rulesets) returned an empty list. An attempt to enable private reporting through the GitHub API was rejected with HTTP 403 (“Resource not accessible by integration”); a follow-up read still reports `enabled: false`. No repository settings have been changed.
+
+## Findings and actions
+
+- Bug and feature forms are appropriate for an Issues-enabled repository; `blank_issues_enabled: false` directs users through the forms. The security contact link points to `SECURITY.md`, and the user documentation link points to `docs/user/` on `main`.
+- Since private vulnerability reporting is disabled and no alternate private contact is named in the policy or issue forms reviewed, the security-reporting instructions previously suggested a channel that does not currently exist. Updated `SECURITY.md` to disclose the observed setting and require maintainers to enable private reporting or publish an actual private contact before considering the policy ready. Updated the issue-form contact link description to tell reporters to check that status. This is a documentation correction only; settings were not changed.
+- GitHub's contents API returned 404 for `.github/ISSUE_TEMPLATE` and `SECURITY.md` on default branch `main`, and `gh repo view` listed no active issue templates there. These files are present on this working branch and will only be active after merge.
+- The branch-protection endpoint returned HTTP 403 (“Resource not accessible by integration”), but alternate read endpoints verified the state: `GET /branches/main` reports `protected: false`, `protection.enabled: false`, and no required status checks; `GET /rulesets?includes_parents=true` returned `[]`. Thus no branch protection or repository/inherited rulesets are configured for `main`.
+- Both CI workflows reviewed use `contents: read` permissions and SHA-pinned third-party actions.
+
+## Verification
+
+- All three issue-form YAML files validated successfully with `yaml`.
+- `npm run format:check` passed.
+- `npm run package:check` passed: the package allowlist contains 81 files, limited to runtime output and consumer documentation.
+- `npm pack --dry-run --json` also listed 81 files and confirmed that `.github/` issue forms, `CONTRIBUTING.md`, `SECURITY.md`, and `docs/developer/` are excluded.
+- `git diff --check` passed.
+- After a frozen Bun 1.4.4 dependency install, local `bun run check` passed formatting, typecheck, build, the API example, and all 150 tests (2 platform-specific skips). `npm run package:check` passed with 81 files.
+- Hosted checks passed on source commit `663d20b`: runtime workflow [`40980046376`](https://github.com/komeilm76/fastifest/actions/runs/40980046376) passed Node 20/22/24 on Ubuntu 26.04, Windows 2025, and macOS 26, Bun 1.4.4 on Ubuntu, and the Node 20.10.0 packed-install smoke on all three operating systems. Windows path-safety workflow [`40980046375`](https://github.com/komeilm76/fastifest/actions/runs/40980046375) passed Node 20 and 22. These results apply to the tested combinations only.
+- After the report-only follow-up commit `271ad17`, hosted runtime run [`41040085968`](https://github.com/komeilm76/fastifest/actions/runs/41040085968) and Windows path-safety run [`41040085915`](https://github.com/komeilm76/fastifest/actions/runs/41040085915) both completed successfully for that exact SHA.
+- Latest pushed commit `44e022e` also passed both workflows on its exact SHA: runtime run [`41040913104`](https://github.com/komeilm76/fastifest/actions/runs/41040913104) and Windows path-safety run [`41040913126`](https://github.com/komeilm76/fastifest/actions/runs/41040913126).
+- Draft PR head `062bf79` passed runtime workflow [`41057886061`](https://github.com/komeilm76/fastifest/actions/runs/41057886061) and Windows path-safety workflow [`41057885988`](https://github.com/komeilm76/fastifest/actions/runs/41057885988), including Node 20/22/24, Bun on Ubuntu, minimum Node packed installs, package audit, and Windows path tests as configured.
+- Current open draft PR head `42e31b0` had all checks passing: runtime matrix [`41058076765`](https://github.com/komeilm76/fastifest/actions/runs/41058076765) and Windows path-safety [`41058076684`](https://github.com/komeilm76/fastifest/actions/runs/41058076684).
+- PR head `b5bd7c4` had all checks passing: runtime matrix [`41059319061`](https://github.com/komeilm76/fastifest/actions/runs/41059319061) and Windows path-safety [`41059319090`](https://github.com/komeilm76/fastifest/actions/runs/41059319090).
+- PR head `4f8dbd4` had all checks passing: runtime matrix [`41063334706`](https://github.com/komeilm76/fastifest/actions/runs/41063334706) and Windows path-safety [`41063334781`](https://github.com/komeilm76/fastifest/actions/runs/41063334781).
+- PR head `168fbd5` had all checks passing: runtime matrix [`41063594843`](https://github.com/komeilm76/fastifest/actions/runs/41063594843) and Windows path-safety [`41063594852`](https://github.com/komeilm76/fastifest/actions/runs/41063594852).
+- Current PR head `bce1828` also has all checks passing: runtime matrix [`41063853564`](https://github.com/komeilm76/fastifest/actions/runs/41063853564) and Windows path-safety [`41063853570`](https://github.com/komeilm76/fastifest/actions/runs/41063853570).
+- Draft PR [#1](https://github.com/komeilm76/fastifest/pull/1) is open for review. No merge/live-template verification has occurred.
+
+## Next tasks (phase-priority order)
+
+1. **Phase 4 — maintainer action: resolve the private-reporting readiness gap.** The API integration lacks permission to change repository security settings. A maintainer needs to enable GitHub private vulnerability reporting in repository settings or supply and publish a private contact route, then update `SECURITY.md` to match the actual setup before merging the forms/policy.
+2. **Phase 4 — maintainer decision on branch protection.** `main` currently has protection disabled and no rulesets/required checks. An authorized maintainer should decide and configure appropriate review/status-check requirements; no setting was changed.
+3. **Phase 4 — review draft PR #1.** Review the full implementation and maintainer guidance in the draft PR; do not merge until the private-reporting and branch-protection decisions are resolved.
+4. **Phase 4 — verify the merged repository state.** After blockers are resolved and merge is explicitly approved, confirm GitHub recognizes the issue forms/security policy and recheck repository settings; preserve the tested-runtime limitations.
+5. **Phase 5 — release-readiness review, only after Phase 4 and explicit authorization.** Confirm versioning, package identity/ownership, publishing permissions, workflow security, and release notes. Do not publish without explicit owner authorization.
+
+## Progress log
+
+- 2026-10-30 — Began checking repository settings, local maintainer materials, issue forms, workflow permissions, and npm exclusions. The local forms direct security reports to `SECURITY.md`, but the current repository setting is private vulnerability reporting disabled and no alternate private contact is listed.
+- 2026-10-30 — Updated `SECURITY.md` to state the observed private-reporting gap and maintainer action; adjusted the issue-form contact link description. No repository setting was changed.
+- 2026-10-30 — Confirmed the forms and security policy are not on default branch `main` yet. The dedicated branch-protection endpoint returned HTTP 403; follow-up reads of the branch and rulesets endpoints established that protection and rulesets are disabled.
+- 2026-10-30 — YAML validation, `npm run format:check`, `npm run package:check` (81 files), `npm pack --dry-run --json` exclusion check (81 files), and `git diff --check` all passed.
+- 2026-10-30 — Follow-up task attempted to enable private reporting using `gh api --method PUT repos/komeilm76/fastifest/private-vulnerability-reporting`; GitHub rejected it with HTTP 403 (“Resource not accessible by integration”). A subsequent GET still returned `{"enabled":false}`. No repository setting changed; an authorized maintainer must enable the setting in GitHub or publish an alternate private route.
+- 2026-10-30 — Continued with branch-protection verification using read endpoints. `GET /branches/main` reports `protected: false`, protection disabled, and no required status checks; `GET /rulesets?includes_parents=true` returned `[]`. This confirms `main` has no configured branch protection/rulesets. No settings changed; maintainer action is needed to decide whether to configure them.
+- 2026-10-30 — Completed the remaining local/hosted Phase 4 check pass on commit `663d20b`. The first local Bun check could not find Prettier because dependencies were not installed; after `bun install --frozen-lockfile`, local `bun run check` passed (150 tests passed, 2 skipped), as did the 81-file package audit. Hosted runtime run `40980046376` and Windows path-safety run `40980046375` both passed on that exact commit. The run logs are linked above. No code or repository setting changed; private-reporting and maintainer review remain outstanding.
+- 2026-10-30 — Rechecked the latest pushed report-only commit `271ad17`: hosted runtime run `41040085968` and Windows path-safety run `41040085915` both passed on its exact SHA. `gh pr list` still returns no pull request for the branch.
+- 2026-10-30 — After pushing commit `44e022e`, watched hosted runtime run `41040913104` and Windows path-safety run `41040913126`; both passed on the exact commit.
+- 2026-10-30 — Opened draft PR [#1](https://github.com/komeilm76/fastifest/pull/1) for review; its description clearly records the two maintainer blockers and states not to merge until resolved. No merge was performed.
+- 2026-10-30 — Verified the draft PR head `062bf79`: runtime workflow `41057886061` and Windows path-safety workflow `41057885988` passed.
+- 2026-10-30 — Rechecked open draft PR head `42e31b0`; all PR checks passed (runtime run `41058076765`, Windows path-safety run `41058076684`).
+- 2026-10-30 — Reviewed current draft PR #1 status: it remains open/draft with no reviews or comments. All checks passed on head `b5bd7c4` (runtime run `41059319061`, Windows path-safety run `41059319090`).
+- 2026-10-30 — Rechecked latest PR head `4f8dbd4`; all checks passed (runtime run `41063334706`, Windows path-safety run `41063334781`).
+- 2026-10-30 — Rechecked PR head `168fbd5`; all checks passed (runtime run `41063594843`, Windows path-safety run `41063594852`).
+- 2026-10-30 — Current PR head `bce1828` also passes all checks (runtime run `41063853564`, Windows path-safety run `41063853570`). PR #1 is still open/draft with no comments or reviews. Private reporting remains disabled, `main` remains unprotected, and no repository settings changed; maintainer decisions and user review are pending.

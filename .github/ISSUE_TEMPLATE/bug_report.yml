@@ -1,0 +1,54 @@
+name: Bug report
+description: Report a reproducible Fastifest defect.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For security vulnerabilities, do not use this public form. Follow [SECURITY.md](https://github.com/komeilm76/fastifest/blob/main/SECURITY.md).
+        Remove project secrets and private assets from logs and reproductions.
+  - type: input
+    id: version
+    attributes:
+      label: Fastifest version or commit
+      description: Include the package version or full commit SHA.
+      placeholder: "0.1.0 or abc1234"
+    validations:
+      required: true
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime and version
+      description: Include Node.js or Bun and its exact version.
+      placeholder: "Node.js 22.22.3"
+    validations:
+      required: true
+  - type: input
+    id: operating-system
+    attributes:
+      label: Operating system
+      placeholder: "Windows 2025, Ubuntu 26.04, macOS 26"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest repeatable example. Do not upload private assets.
+      placeholder: Steps, configuration, sanitized inputs, and command used.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+      description: Include relevant error codes and sanitized output.
+    validations:
+      required: true
+  - type: textarea
+    id: checks
+    attributes:
+      label: Checks already run
+      description: List commands and runtimes, or say if none were run.
+    validations:
+      required: false
