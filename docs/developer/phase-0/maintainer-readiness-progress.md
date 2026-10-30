@@ -6,7 +6,7 @@ Updated: 2026-10-30
 
 **Phase 4 — verify maintainer guidance and issue forms against the GitHub repository settings; keep them outside the npm package.**
 
-**Status: Complete for the checks accessible in this session; maintainer action remains before security reporting is ready.** The worktree was clean at the start (`2f95834`). Repository metadata reports a public repository, default branch `main`, Issues enabled, and Discussions disabled. GitHub reports private vulnerability reporting is disabled. No alternate private contact is named in the policy or issue forms reviewed. `SECURITY.md` and the issue forms are on this working branch but not on `main`; their GitHub links and forms are not live until merged. Branch protection could not be queried (HTTP 403), so its state remains unknown. No repository settings were changed.
+**Status: Blocked on maintainer permissions.** The worktree was clean at the start (`0377e3b`). Repository metadata reports a public repository, default branch `main`, Issues enabled, and Discussions disabled. GitHub reports private vulnerability reporting is disabled. No alternate private contact is named in the policy or issue forms reviewed. `SECURITY.md` and the issue forms are on this working branch but not on `main`; their GitHub links and forms are not live until merged. Branch protection could not be queried (HTTP 403), so its state remains unknown. An attempt to enable private reporting through the GitHub API was rejected with HTTP 403 (“Resource not accessible by integration”); a follow-up read still reports `enabled: false`. The setting has not been changed.
 
 ## Findings and actions
 
@@ -26,7 +26,7 @@ Updated: 2026-10-30
 
 ## Next tasks (phase-priority order)
 
-1. **Phase 4 — resolve the private-reporting readiness gap.** A repository maintainer should enable GitHub private vulnerability reporting or supply and publish a private contact route, then update `SECURITY.md` to match the actual setting before merging the forms/policy.
+1. **Phase 4 — maintainer action: resolve the private-reporting readiness gap.** The API integration lacks permission to change repository security settings. A maintainer needs to enable GitHub private vulnerability reporting in repository settings or supply and publish a private contact route, then update `SECURITY.md` to match the actual setup before merging the forms/policy.
 2. **Phase 4 — verify branch protection with an authorized maintainer.** The integration could not read the endpoint; confirm required reviews/status checks and document only verified settings.
 3. **Phase 4 — user review and merge readiness.** Review this report and the two documentation changes; after approval, merge through the normal repository process and verify that GitHub recognizes the issue forms and security policy on `main`.
 4. **Phase 4 — complete the remaining phase gate.** Reconfirm consumer-facing claims, package allowlist, workflows, and the full local/hosted check set; record any unverified runtime or platform coverage without broadening claims.
@@ -37,4 +37,5 @@ Updated: 2026-10-30
 - 2026-10-30 — Began checking repository settings, local maintainer materials, issue forms, workflow permissions, and npm exclusions. The local forms direct security reports to `SECURITY.md`, but the current repository setting is private vulnerability reporting disabled and no alternate private contact is listed.
 - 2026-10-30 — Updated `SECURITY.md` to state the observed private-reporting gap and maintainer action; adjusted the issue-form contact link description. No repository setting was changed.
 - 2026-10-30 — Confirmed the forms and security policy are not on default branch `main` yet; checked branch protection but received HTTP 403, leaving that setting unverified.
-- 2026-10-30 — YAML validation, `npm run format:check`, `npm run package:check` (81 files), `npm pack --dry-run --json` exclusion check (81 files), and `git diff --check` all passed. Task checks complete; stop for user review.
+- 2026-10-30 — YAML validation, `npm run format:check`, `npm run package:check` (81 files), `npm pack --dry-run --json` exclusion check (81 files), and `git diff --check` all passed.
+- 2026-10-30 — Follow-up task attempted to enable private reporting using `gh api --method PUT repos/komeilm76/fastifest/private-vulnerability-reporting`; GitHub rejected it with HTTP 403 (“Resource not accessible by integration”). A subsequent GET still returned `{"enabled":false}`. No repository setting changed; an authorized maintainer must enable the setting in GitHub or publish an alternate private route. Stop for user/maintainer review.
