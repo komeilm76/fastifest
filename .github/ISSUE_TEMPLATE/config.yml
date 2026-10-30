@@ -2,7 +2,7 @@ blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability reporting
     url: https://github.com/komeilm76/fastifest/blob/main/SECURITY.md
-    about: Please use a private reporting channel; do not post vulnerability details publicly.
+    about: See SECURITY.md for current reporting availability; do not post vulnerability details publicly.
   - name: User documentation
     url: https://github.com/komeilm76/fastifest/tree/main/docs/user
     about: Check the guides and troubleshooting steps before opening a usage issue.

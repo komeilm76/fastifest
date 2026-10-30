@@ -118,8 +118,8 @@ Choose and configure one reviewable versioning approach, confirm npm package ide
 
 ## Next tasks (priority order)
 
-1. **Phase 4 — continue the targeted bug audit.** Review remaining transaction, filesystem, input-validation, and public API paths; fix only defects supported by a reproducer and add regression tests.
-2. **Phase 4 — address confirmed findings and close the phase gate.** Re-run all checks and record remaining limitations; do not claim support beyond tested combinations.
-3. **Phase 4 — confirm maintainer-process readiness.** Verify contribution/security guidance and issue forms match repository settings; keep them out of consumer package contents.
-4. **Phase 4 — final release-safety review.** Reconfirm package identity, user documentation, tarball contents, workflow permissions, and tested runtime claims before any release decision.
-5. **Phase 5 — release readiness and publication, only when authorized.** Review versioning, publishing permissions, workflow security, and release notes; never publish without explicit owner authorization.
+1. **Phase 4 — resolve the private-reporting readiness gap.** A repository maintainer should enable GitHub private vulnerability reporting or supply and publish a private contact route, then update `SECURITY.md` to match the actual setting before merging the forms/policy.
+2. **Phase 4 — verify branch protection with an authorized maintainer.** The integration could not read the endpoint; confirm required reviews/status checks and document only verified settings.
+3. **Phase 4 — user review and merge readiness.** Review the maintainer-readiness report and documentation changes; after approval, merge through the normal repository process and verify that GitHub recognizes the issue forms and security policy on `main`.
+4. **Phase 4 — complete the remaining phase gate.** Reconfirm consumer-facing claims, package allowlist, workflows, and the full local/hosted check set; record any unverified runtime or platform coverage without broadening claims.
+5. **Phase 5 — release-readiness review, only after Phase 4 and explicit authorization.** Confirm versioning, package identity/ownership, publishing permissions, workflow security, and release notes. Do not publish without explicit owner authorization.
