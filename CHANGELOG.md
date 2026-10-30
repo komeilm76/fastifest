@@ -6,6 +6,9 @@ All notable changes are tracked here. Fastifest has not yet been published; curr
 
 ### Fixed
 
+- Snapshotted manifest JSON with safe own `toJSON` values so inherited `Object.prototype.toJSON` cannot replace generated output.
+- Validated template arrays by own numeric entries instead of caller-overridable `.some()` methods, preventing malformed string/object arrays from passing validation.
+- Read public API option values only from own properties, ignoring inherited prototype values.
 - Validated manifest templates from own enumerable data properties, ignoring inherited values and rejecting sparse arrays that could otherwise read inherited array entries.
 - Hardened configuration validation and path resolution against inherited `Object.prototype` properties and setters by validating own data properties, defining normalized fields safely, and reading only own normalized values.
 - Enforced decoded byte, side, and pixel limits for raster images embedded in SVG logos while retaining support for valid padded and unpadded Base64 data URIs.

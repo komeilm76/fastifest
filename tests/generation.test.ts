@@ -82,6 +82,42 @@ describe("generateProject", () => {
     await expect(access(config.publicRoot)).rejects.toThrow();
   });
 
+  it("ignores inherited generation options from a polluted Object prototype", async () => {
+    const original = Object.getOwnPropertyDescriptor(
+      Object.prototype,
+      "configPath",
+    );
+    let reads = 0;
+    let result: Awaited<ReturnType<typeof generateProject>> | undefined;
+    let thrown: unknown;
+    try {
+      Object.defineProperty(Object.prototype, "configPath", {
+        configurable: true,
+        get: () => {
+          reads += 1;
+          return join(projectRoot, "injected.config.ts");
+        },
+      });
+      try {
+        result = await generateProject({
+          cwd: projectRoot,
+          logger: silentLogger,
+        });
+      } catch (error) {
+        thrown = error;
+      }
+    } finally {
+      if (original)
+        Object.defineProperty(Object.prototype, "configPath", original);
+      else Reflect.deleteProperty(Object.prototype, "configPath");
+    }
+
+    expect(thrown).toBeUndefined();
+    expect(reads).toBe(0);
+    expect(result).toMatchObject({ status: "template-created" });
+    await access(config.templatePath);
+  });
+
   it("rejects a manifest template path that collides with manifest output", async () => {
     const previousManifest = JSON.stringify({ name: "Template App" });
     await mkdir(config.publicRoot, { recursive: true });

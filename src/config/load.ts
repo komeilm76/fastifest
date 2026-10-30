@@ -3,6 +3,7 @@ import { isAbsolute, resolve } from "node:path";
 import { createJiti } from "jiti";
 import { FastifestError } from "../errors.js";
 import type { FastifestConfig } from "../types.js";
+import { ownOption } from "../own-property.js";
 import { validateConfig } from "./validate.js";
 
 /** Options for locating and loading a consumer project's config file. */
@@ -27,12 +28,13 @@ export interface LoadConfigOptions {
 export async function loadConfig(
   options: LoadConfigOptions = {},
 ): Promise<FastifestConfig> {
-  const cwd = resolve(options.cwd ?? process.cwd());
-  const explicitPath = options.configPath !== undefined;
+  const cwd = resolve(ownOption(options, "cwd") ?? process.cwd());
+  const configuredPath = ownOption(options, "configPath");
+  const explicitPath = configuredPath !== undefined;
   const configPath = explicitPath
-    ? isAbsolute(options.configPath!)
-      ? resolve(options.configPath!)
-      : resolve(cwd, options.configPath!)
+    ? isAbsolute(configuredPath)
+      ? resolve(configuredPath)
+      : resolve(cwd, configuredPath)
     : resolve(cwd, "fastifest.config.ts");
 
   try {

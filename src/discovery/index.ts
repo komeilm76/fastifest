@@ -6,6 +6,7 @@ import { extname, join, parse, relative, resolve, sep } from "node:path";
 import sharp, { type Metadata } from "sharp";
 import { FastifestError } from "../errors.js";
 import { createLogger } from "../logger.js";
+import { ownOption } from "../own-property.js";
 import type { Logger } from "../logger.js";
 import type { ResolvedFastifestConfig, ScreenshotMetadata } from "../types.js";
 import {
@@ -762,7 +763,7 @@ export async function discoverInputs(
   config: ResolvedFastifestConfig,
   options: DiscoverInputsOptions = {},
 ): Promise<DiscoveredInputs> {
-  const logger = options.logger ?? createLogger(config.logLevel);
+  const logger = ownOption(options, "logger") ?? createLogger(config.logLevel);
   const warnings: string[] = [];
   const warn = (message: string): void => {
     warnings.push(message);

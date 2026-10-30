@@ -8,6 +8,7 @@ import { discoverInputs } from "./discovery/index.js";
 import { generateLogoIcons } from "./images/logo.js";
 import { generateScreenshots } from "./images/screenshots.js";
 import { createLogger, type Logger } from "./logger.js";
+import { ownOption } from "./own-property.js";
 import {
   commitGeneration,
   type CommittedGeneration,
@@ -64,16 +65,17 @@ export interface GeneratedProject extends CommittedGeneration {
 export async function generateProject(
   options: GenerateProjectOptions = {},
 ): Promise<TemplateCreatedResult | GeneratedProject> {
+  const cwd = ownOption(options, "cwd");
+  const configPath = ownOption(options, "configPath");
+  const requestedLogger = ownOption(options, "logger");
   const loadOptions = {
-    ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
-    ...(options.configPath === undefined
-      ? {}
-      : { configPath: options.configPath }),
+    ...(cwd === undefined ? {} : { cwd }),
+    ...(configPath === undefined ? {} : { configPath }),
   };
   const rawConfig = await loadConfig(loadOptions);
-  const resolveOptions = options.cwd === undefined ? {} : { cwd: options.cwd };
+  const resolveOptions = cwd === undefined ? {} : { cwd };
   const config = await resolveConfig(rawConfig, resolveOptions);
-  const logger = options.logger ?? createLogger(config.logLevel);
+  const logger = requestedLogger ?? createLogger(config.logLevel);
 
   const template: LoadOrCreateTemplateResult = await loadOrCreateTemplate(
     config.templatePath,

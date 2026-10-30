@@ -133,6 +133,44 @@ describe("buildManifest", () => {
     await expect(access(config.publicRoot)).rejects.toThrow();
   });
 
+  it("does not let inherited toJSON properties alter generated manifest serialization", async () => {
+    const config = await makeConfig();
+    const original = Object.getOwnPropertyDescriptor(
+      Object.prototype,
+      "toJSON",
+    );
+    let calls = 0;
+    let result: ReturnType<typeof buildManifest> | undefined;
+    let thrown: unknown;
+    try {
+      Object.defineProperty(Object.prototype, "toJSON", {
+        configurable: true,
+        value: function () {
+          calls += 1;
+          return { polluted: true };
+        },
+      });
+      try {
+        result = buildManifest(config, completeTemplate, makeIcons(), [], {
+          logger: silentLogger,
+        });
+      } catch (error) {
+        thrown = error;
+      }
+    } finally {
+      if (original) Object.defineProperty(Object.prototype, "toJSON", original);
+      else Reflect.deleteProperty(Object.prototype, "toJSON");
+    }
+
+    expect(thrown).toBeUndefined();
+    expect(calls).toBe(0);
+    expect(JSON.parse(result!.json)).toMatchObject({
+      name: "Example App",
+      custom_member: { enabled: true, version: 1 },
+      icons: expect.any(Array),
+    });
+  });
+
   it("validates relative start, scope, and id relationships without requiring id inside scope", async () => {
     const config = await makeConfig();
     const result = buildManifest(

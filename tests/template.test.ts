@@ -129,6 +129,23 @@ describe("validateTemplate", () => {
     );
   });
 
+  it.each([
+    ["categories", "expected an array of strings"],
+    ["shortcuts", "expected an array of JSON objects"],
+  ])(
+    "does not trust an array's own non-enumerable some method for %s",
+    (field, message) => {
+      const values = [42];
+      Object.defineProperty(values, "some", {
+        configurable: true,
+        value: () => false,
+      });
+      const template = { name: "Example", [field]: values };
+
+      expect(() => validateTemplate(template)).toThrowError(message);
+    },
+  );
+
   it("rejects circular extension values", () => {
     const circular: Record<string, unknown> = { name: "Example" };
     circular.self = circular;

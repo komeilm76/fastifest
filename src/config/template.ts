@@ -3,6 +3,7 @@ import { dirname, join, parse, resolve, sep } from "node:path";
 import { createJiti } from "jiti";
 import { FastifestError } from "../errors.js";
 import { createLogger, type Logger } from "../logger.js";
+import { ownOption } from "../own-property.js";
 import type { JsonObject, JsonValue, ManifestTemplate } from "../types.js";
 
 type UnknownRecord = Record<string, unknown>;
@@ -87,8 +88,11 @@ function requireStringArray(
   value: unknown,
   field: string,
 ): asserts value is string[] {
-  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
-    invalid(field, "expected an array of strings.");
+  if (!Array.isArray(value)) invalid(field, "expected an array of strings.");
+  for (let index = 0; index < value.length; index += 1) {
+    if (!Object.hasOwn(value, index) || typeof value[index] !== "string") {
+      invalid(field, "expected an array of strings.");
+    }
   }
 }
 
@@ -96,8 +100,12 @@ function requireObjectArray(
   value: unknown,
   field: string,
 ): asserts value is JsonObject[] {
-  if (!Array.isArray(value) || value.some((item) => !isRecord(item))) {
+  if (!Array.isArray(value))
     invalid(field, "expected an array of JSON objects.");
+  for (let index = 0; index < value.length; index += 1) {
+    if (!Object.hasOwn(value, index) || !isRecord(value[index])) {
+      invalid(field, "expected an array of JSON objects.");
+    }
   }
 }
 
@@ -450,8 +458,8 @@ export async function loadOrCreateTemplate(
   options: LoadOrCreateTemplateOptions = {},
 ): Promise<LoadOrCreateTemplateResult> {
   const absoluteTemplatePath = resolve(templatePath);
-  const logger = options.logger ?? createLogger();
-  const enabled = options.enabled ?? true;
+  const logger = ownOption(options, "logger") ?? createLogger();
+  const enabled = ownOption(options, "enabled") ?? true;
 
   if (await inspectTemplatePath(absoluteTemplatePath)) {
     return {

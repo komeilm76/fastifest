@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import { FastifestError } from "../errors.js";
+import { ownOption } from "../own-property.js";
 import { readDiscoveredImage } from "../discovery/index.js";
 import { MAX_RASTER_PIXELS } from "../discovery/limits.js";
 import { createLogger } from "../logger.js";
@@ -118,7 +119,7 @@ export async function generateLogoIcons(
   image: DiscoveredImage,
   options: GenerateLogoIconsOptions = {},
 ): Promise<GeneratedLogoIcons> {
-  const logger = options.logger ?? createLogger("info");
+  const logger = ownOption(options, "logger") ?? createLogger("info");
   const warnings: string[] = [];
   const source = await readDiscoveredImage(image);
 

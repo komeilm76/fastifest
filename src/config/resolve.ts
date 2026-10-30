@@ -132,7 +132,7 @@ export async function resolveConfig(
   options: ResolveConfigOptions = {},
 ): Promise<ResolvedFastifestConfig> {
   const config = validateConfig(input);
-  const requestedRoot = resolve(options.cwd ?? process.cwd());
+  const requestedRoot = resolve(ownValue(options, "cwd") ?? process.cwd());
   let projectRoot: string;
   try {
     projectRoot = await realpath(requestedRoot);

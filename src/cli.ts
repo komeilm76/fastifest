@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { FastifestError } from "./errors.js";
 import { generateProject } from "./generation.js";
+import { ownOption } from "./own-property.js";
 import type { Logger } from "./logger.js";
 
 const USAGE = `Usage: fastifest [options]
@@ -116,9 +117,11 @@ export async function runCli(
   options: RunOptions = {},
 ): Promise<number> {
   const writeStdout =
-    options.writeStdout ?? ((message) => process.stdout.write(message));
+    ownOption(options, "writeStdout") ??
+    ((message) => process.stdout.write(message));
   const writeStderr =
-    options.writeStderr ?? ((message) => process.stderr.write(message));
+    ownOption(options, "writeStderr") ??
+    ((message) => process.stderr.write(message));
   let parsed: ParsedArguments;
 
   try {
@@ -148,12 +151,14 @@ export async function runCli(
   }
 
   try {
+    const cwd = ownOption(options, "cwd");
+    const logger = ownOption(options, "logger");
     await generateProject({
-      ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
+      ...(cwd === undefined ? {} : { cwd }),
       ...(parsed.configPath === undefined
         ? {}
         : { configPath: parsed.configPath }),
-      ...(options.logger === undefined ? {} : { logger: options.logger }),
+      ...(logger === undefined ? {} : { logger }),
     });
     return 0;
   } catch (error) {

@@ -21,6 +21,7 @@ import {
 } from "node:path";
 import { FastifestError } from "../errors.js";
 import { createLogger, type Logger } from "../logger.js";
+import { ownOption } from "../own-property.js";
 import type { GeneratedLogoIcon } from "../images/logo.js";
 import type { GeneratedScreenshot } from "../images/screenshots.js";
 import { buildManifest, type BuiltManifest } from "../manifest/build.js";
@@ -845,7 +846,7 @@ export async function commitGeneration(
   screenshots: readonly GeneratedScreenshot[],
   options: CommitGenerationOptions = {},
 ): Promise<CommittedGeneration> {
-  const logger = options.logger ?? createLogger(config.logLevel);
+  const logger = ownOption(options, "logger") ?? createLogger(config.logLevel);
   const plan = await preflightManagedOutputs(config, icons, screenshots);
   const builtManifest = buildManifest(config, template, icons, screenshots, {
     logger,
@@ -858,8 +859,9 @@ export async function commitGeneration(
     );
   }
   validatePlanPaths(config, plan);
-  const renameFile = options.fileOperations?.rename ?? rename;
-  const linkFile = options.fileOperations?.link ?? link;
+  const fileOperations = ownOption(options, "fileOperations");
+  const renameFile = ownOption(fileOperations, "rename") ?? rename;
+  const linkFile = ownOption(fileOperations, "link") ?? link;
   const staged: StagedFile[] = [];
   const journal: ReplacementRecord[] = [];
   let stagedCleanupWarnings: string[] = [];

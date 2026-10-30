@@ -147,6 +147,35 @@ describe("resolveConfig", () => {
     });
   });
 
+  it("ignores inherited resolver options from a polluted Object prototype", async () => {
+    const original = Object.getOwnPropertyDescriptor(Object.prototype, "cwd");
+    const expectedRoot = await realpath(process.cwd());
+    let reads = 0;
+    let resolved: Awaited<ReturnType<typeof resolveConfig>> | undefined;
+    let thrown: unknown;
+    try {
+      Object.defineProperty(Object.prototype, "cwd", {
+        configurable: true,
+        get: () => {
+          reads += 1;
+          return join(projectRoot, "injected-root");
+        },
+      });
+      try {
+        resolved = await resolveConfig({}, {});
+      } catch (error) {
+        thrown = error;
+      }
+    } finally {
+      if (original) Object.defineProperty(Object.prototype, "cwd", original);
+      else Reflect.deleteProperty(Object.prototype, "cwd");
+    }
+
+    expect(thrown).toBeUndefined();
+    expect(reads).toBe(0);
+    expect(resolved?.projectRoot).toBe(expectedRoot);
+  });
+
   it("does not read inherited config properties while resolving defaults", async () => {
     const original = Object.getOwnPropertyDescriptor(Object.prototype, "paths");
     let reads = 0;
@@ -277,6 +306,38 @@ describe("resolveConfig", () => {
 });
 
 describe("loadConfig", () => {
+  it("ignores inherited loader options from a polluted Object prototype", async () => {
+    const original = Object.getOwnPropertyDescriptor(
+      Object.prototype,
+      "configPath",
+    );
+    let reads = 0;
+    let result: Awaited<ReturnType<typeof loadConfig>> | undefined;
+    let thrown: unknown;
+    try {
+      Object.defineProperty(Object.prototype, "configPath", {
+        configurable: true,
+        get: () => {
+          reads += 1;
+          return join(projectRoot, "injected.config.ts");
+        },
+      });
+      try {
+        result = await loadConfig({ cwd: projectRoot });
+      } catch (error) {
+        thrown = error;
+      }
+    } finally {
+      if (original)
+        Object.defineProperty(Object.prototype, "configPath", original);
+      else Reflect.deleteProperty(Object.prototype, "configPath");
+    }
+
+    expect(thrown).toBeUndefined();
+    expect(reads).toBe(0);
+    expect(result).toEqual({});
+  });
+
   it("uses defaults when the optional project config is missing", async () => {
     await expect(loadConfig({ cwd: projectRoot })).resolves.toEqual({});
   });

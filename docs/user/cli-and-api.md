@@ -35,7 +35,7 @@ node ./node_modules/fastifest/docs/user/examples/programmatic.mjs
 
 The example calls `generateProject({ cwd: process.cwd() })` and checks the `status` discriminant before reading generated-result fields. It is verified against the built local package as part of the repository checks.
 
-`cwd` defaults to the current working directory. `configPath` is optional and, when relative, resolves from `cwd`. An optional `logger` can override pipeline logging.
+`cwd` defaults to the current working directory. `configPath` is optional and, when relative, resolves from `cwd`. An optional `logger` can override pipeline logging. API option objects use own properties; inherited values are ignored.
 
 The result is a discriminated union:
 

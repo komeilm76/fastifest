@@ -1,13 +1,18 @@
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { FastifestError } from "../errors.js";
 import { validateTemplate } from "../config/template.js";
+import { ownOption } from "../own-property.js";
 import { createLogger, type Logger } from "../logger.js";
 import type { GeneratedLogoIcon } from "../images/logo.js";
 import {
   MAX_SCREENSHOT_SIDE,
   type GeneratedScreenshot,
 } from "../images/screenshots.js";
-import type { JsonObject, ResolvedFastifestConfig } from "../types.js";
+import type {
+  JsonObject,
+  JsonValue,
+  ResolvedFastifestConfig,
+} from "../types.js";
 
 const ICON_SPECS = [
   { filename: "icon-192.png", size: 192, purpose: "any" },
@@ -108,6 +113,47 @@ function validateOutputLayout(config: ResolvedFastifestConfig): {
     );
   }
   return { publicRoot, manifestPath, iconsDirectory, screenshotsDirectory };
+}
+
+function safeJsonSnapshot(value: JsonValue): JsonValue {
+  if (value === null || typeof value !== "object") return value;
+
+  if (Array.isArray(value)) {
+    const snapshot: JsonValue[] = [];
+    Object.defineProperty(snapshot, "toJSON", {
+      value: undefined,
+      configurable: true,
+      enumerable: false,
+      writable: true,
+    });
+    for (let index = 0; index < value.length; index += 1) {
+      if (!Object.hasOwn(value, index)) {
+        throw new FastifestError(
+          "TEMPLATE_INVALID",
+          "Invalid manifest template: sparse arrays are not JSON-compatible.",
+        );
+      }
+      snapshot.push(safeJsonSnapshot(value[index]!));
+    }
+    return snapshot;
+  }
+
+  const snapshot: JsonObject = {};
+  Object.defineProperty(snapshot, "toJSON", {
+    value: undefined,
+    configurable: true,
+    enumerable: false,
+    writable: true,
+  });
+  for (const [key, member] of Object.entries(value)) {
+    Object.defineProperty(snapshot, key, {
+      value: safeJsonSnapshot(member),
+      configurable: true,
+      enumerable: true,
+      writable: true,
+    });
+  }
+  return snapshot;
 }
 
 function urlPath(
@@ -378,7 +424,7 @@ export function buildManifest(
 ): BuiltManifest {
   const template = validateTemplate(templateInput);
   const warnings: string[] = [];
-  const logger = options.logger ?? createLogger(config.logLevel);
+  const logger = ownOption(options, "logger") ?? createLogger(config.logLevel);
   const warn = (message: string): void => {
     warnings.push(message);
     logger.warn(message);
@@ -411,11 +457,11 @@ export function buildManifest(
     },
   );
 
-  const value = {
+  const value = safeJsonSnapshot({
     ...template,
     icons: iconEntries,
     ...(screenshotEntries.length > 0 ? { screenshots: screenshotEntries } : {}),
-  } as unknown as JsonObject;
+  } as unknown as JsonObject) as JsonObject;
   const json = `${JSON.stringify(value, null, 2)}\n`;
 
   if (template.start_url === undefined) {
