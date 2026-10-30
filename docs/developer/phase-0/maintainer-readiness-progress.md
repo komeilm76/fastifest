@@ -29,7 +29,8 @@ Updated: 2026-10-30
 - Latest pushed commit `44e022e` also passed both workflows on its exact SHA: runtime run [`41040913104`](https://github.com/komeilm76/fastifest/actions/runs/41040913104) and Windows path-safety run [`41040913126`](https://github.com/komeilm76/fastifest/actions/runs/41040913126).
 - Draft PR head `062bf79` passed runtime workflow [`41057886061`](https://github.com/komeilm76/fastifest/actions/runs/41057886061) and Windows path-safety workflow [`41057885988`](https://github.com/komeilm76/fastifest/actions/runs/41057885988), including Node 20/22/24, Bun on Ubuntu, minimum Node packed installs, package audit, and Windows path tests as configured.
 - Current open draft PR head `42e31b0` had all checks passing: runtime matrix [`41058076765`](https://github.com/komeilm76/fastifest/actions/runs/41058076765) and Windows path-safety [`41058076684`](https://github.com/komeilm76/fastifest/actions/runs/41058076684).
-- Latest PR head `b5bd7c4` also has all checks passing: runtime matrix [`41059319061`](https://github.com/komeilm76/fastifest/actions/runs/41059319061) and Windows path-safety [`41059319090`](https://github.com/komeilm76/fastifest/actions/runs/41059319090).
+- PR head `b5bd7c4` had all checks passing: runtime matrix [`41059319061`](https://github.com/komeilm76/fastifest/actions/runs/41059319061) and Windows path-safety [`41059319090`](https://github.com/komeilm76/fastifest/actions/runs/41059319090).
+- Current PR head `4f8dbd4` also has all checks passing: runtime matrix [`41063334706`](https://github.com/komeilm76/fastifest/actions/runs/41063334706) and Windows path-safety [`41063334781`](https://github.com/komeilm76/fastifest/actions/runs/41063334781).
 - Draft PR [#1](https://github.com/komeilm76/fastifest/pull/1) is open for review. No merge/live-template verification has occurred.
 
 ## Next tasks (phase-priority order)
@@ -54,4 +55,5 @@ Updated: 2026-10-30
 - 2026-10-30 — Opened draft PR [#1](https://github.com/komeilm76/fastifest/pull/1) for review; its description clearly records the two maintainer blockers and states not to merge until resolved. No merge was performed.
 - 2026-10-30 — Verified the draft PR head `062bf79`: runtime workflow `41057886061` and Windows path-safety workflow `41057885988` passed.
 - 2026-10-30 — Rechecked open draft PR head `42e31b0`; all PR checks passed (runtime run `41058076765`, Windows path-safety run `41058076684`).
-- 2026-10-30 — Reviewed current draft PR #1 status: it remains open/draft with no reviews or comments. All checks passed on head `b5bd7c4` (runtime run `41059319061`, Windows path-safety run `41059319090`). Private reporting remains disabled, `main` remains unprotected, and no repository settings changed; maintainers' settings decisions and user review are still pending.
+- 2026-10-30 — Reviewed current draft PR #1 status: it remains open/draft with no reviews or comments. All checks passed on head `b5bd7c4` (runtime run `41059319061`, Windows path-safety run `41059319090`).
+- 2026-10-30 — Rechecked latest PR head `4f8dbd4`; all checks passed (runtime run `41063334706`, Windows path-safety run `41063334781`). Private reporting remains disabled, `main` remains unprotected, and no repository settings changed; maintainers' settings decisions and user review are still pending.
